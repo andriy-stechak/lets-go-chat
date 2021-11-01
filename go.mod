@@ -1,3 +1,3 @@
-module github.com/andriy-stechak/lets-go-chat
+module github.com/andriystech/lgc
 
 go 1.17
