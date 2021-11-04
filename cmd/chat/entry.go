@@ -1,12 +1,9 @@
 package main
 
 import (
-	"fmt"
-
-	"github.com/andriystech/lgc/pkg/hasher"
+	"github.com/andriystech/lgc/internal/app"
 )
 
 func main() {
-	hash := hasher.HashPassword("hello")
-	fmt.Println(hash)
+	app.Run()
 }
