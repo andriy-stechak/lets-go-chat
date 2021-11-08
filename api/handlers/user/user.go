@@ -5,11 +5,11 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/andriystech/lgc/internal/app/errors"
-	"github.com/andriystech/lgc/internal/app/handlers/common"
-	"github.com/andriystech/lgc/internal/app/models/creds"
-	"github.com/andriystech/lgc/internal/app/models/token"
-	"github.com/andriystech/lgc/internal/app/models/user"
+	"github.com/andriystech/lgc/api/errors"
+	"github.com/andriystech/lgc/api/handlers/common"
+	"github.com/andriystech/lgc/models/creds"
+	"github.com/andriystech/lgc/models/token"
+	"github.com/andriystech/lgc/models/user"
 	"github.com/andriystech/lgc/pkg/hasher"
 )
 

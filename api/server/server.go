@@ -1,15 +1,14 @@
-package app
+package server
 
 import (
 	"log"
 	"net/http"
 
-	"github.com/andriystech/lgc/internal/app/handlers/monitoring"
-	"github.com/andriystech/lgc/internal/app/handlers/user"
+	"github.com/andriystech/lgc/api/handlers/monitoring"
+	"github.com/andriystech/lgc/api/handlers/user"
+	"github.com/andriystech/lgc/config"
 	"github.com/gorilla/mux"
 )
-
-const port = ":8080"
 
 func Run() {
 	router := mux.NewRouter()
@@ -18,6 +17,6 @@ func Run() {
 	router.HandleFunc("/_health", monitoring.HealthCheck).Methods("GET")
 	http.Handle("/", router)
 
-	log.Printf("Server is listening %s port", port)
-	log.Fatal(http.ListenAndServe(port, nil))
+	log.Printf("Server is listening %s port", config.Server.Port)
+	log.Fatal(http.ListenAndServe(config.Server.Port, nil))
 }

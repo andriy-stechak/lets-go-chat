@@ -3,7 +3,7 @@ package monitoring
 import (
 	"net/http"
 
-	"github.com/andriystech/lgc/internal/app/handlers/common"
+	"github.com/andriystech/lgc/api/handlers/common"
 )
 
 type HealthCheckResult struct {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/andriystech/lgc/internal/app/errors"
+	"github.com/andriystech/lgc/api/errors"
 	"github.com/andriystech/lgc/pkg/hasher"
 	"github.com/google/uuid"
 )

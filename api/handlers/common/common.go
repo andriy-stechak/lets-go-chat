@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/andriystech/lgc/internal/app/errors"
+	"github.com/andriystech/lgc/api/errors"
 )
 
 func ParseJsonBody(r *http.Request, v interface{}) (interface{}, *errors.AppError) {

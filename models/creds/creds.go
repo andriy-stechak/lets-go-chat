@@ -1,6 +1,6 @@
 package creds
 
-import "github.com/andriystech/lgc/internal/app/errors"
+import "github.com/andriystech/lgc/api/errors"
 
 type User struct {
 	UserName string `json:"userName"`
