@@ -1,4 +1,4 @@
-package common
+package handlers
 
 import (
 	"encoding/json"
@@ -7,21 +7,21 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/andriystech/lgc/api/errors"
+	"github.com/andriystech/lgc/errors"
 )
 
-func ParseJsonBody(r *http.Request, v interface{}) (interface{}, *errors.AppError) {
+func ParseJsonBody(r *http.Request, v interface{}) (interface{}, *errors.AppHttpError) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Printf("Unable to read body. Reason: %s", err.Error())
-		appError := errors.BadRequest(err.Error())
-		return nil, appError
+		appHttpError := errors.HttpBadRequest(err.Error())
+		return nil, appHttpError
 	}
 
 	if err := json.Unmarshal(body, v); err != nil {
 		log.Printf("Unable to parse JSON body. Reason: %s", err.Error())
-		appError := errors.BadRequest(err.Error())
-		return nil, appError
+		appHttpError := errors.HttpBadRequest(err.Error())
+		return nil, appHttpError
 	}
 	return v, nil
 }
@@ -31,8 +31,8 @@ func SendJsonResponse(w http.ResponseWriter, v interface{}, status int) {
 	if err != nil {
 		log.Printf("Unable to create response. Reason: %s", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		appError := errors.InternalError(err.Error())
-		appError.Send(w)
+		appHttpError := errors.HttpInternalError(err.Error())
+		appHttpError.Send(w)
 		return
 	}
 	w.Header().Add("content-type", "application/json")

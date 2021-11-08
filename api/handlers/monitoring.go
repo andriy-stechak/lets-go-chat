@@ -1,9 +1,7 @@
-package monitoring
+package handlers
 
 import (
 	"net/http"
-
-	"github.com/andriystech/lgc/api/handlers/common"
 )
 
 type HealthCheckResult struct {
@@ -11,5 +9,5 @@ type HealthCheckResult struct {
 }
 
 func HealthCheck(w http.ResponseWriter, r *http.Request) {
-	common.SendJsonResponse(w, HealthCheckResult{Status: "ok"}, http.StatusOK)
+	SendJsonResponse(w, HealthCheckResult{Status: "ok"}, http.StatusOK)
 }
