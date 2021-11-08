@@ -18,11 +18,7 @@ type Model struct {
 	Password string `json:"password"`
 }
 
-var storage map[string]*Model
-
-func init() {
-	storage = make(map[string]*Model)
-}
+var storage map[string]*Model = make(map[string]*Model)
 
 func FindUserByName(name string) (*Model, *errors.AppError) {
 	for _, user := range storage {

@@ -8,10 +8,8 @@ type ServerConfig struct {
 
 const defaultPort = ":8090"
 
-var Server *ServerConfig
-
-func init() {
-	Server = &ServerConfig{
+func GetServerConfig() *ServerConfig {
+	return &ServerConfig{
 		Port: getPort(),
 	}
 }
