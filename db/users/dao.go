@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 )
 
-var storage map[string]*models.User = make(map[string]*models.User)
+var storage = make(map[string]*models.User)
 
 func FindUserByName(name string) (*models.User, *errors.AppError) {
 	for _, user := range storage {
