@@ -1,4 +1,4 @@
-package user
+package users
 
 import (
 	"fmt"
@@ -21,7 +21,7 @@ func FindUserByName(name string) (*models.User, *errors.AppError) {
 	return nil, errors.NotFoundError(fmt.Sprintf("User with name %s not found", name))
 }
 
-func Save(user *models.User) (string, *errors.AppError) {
+func SaveUser(user *models.User) (string, *errors.AppError) {
 	if _, err := FindUserByName(user.UserName); err == nil {
 		appError := errors.ConflictError(fmt.Sprintf("User with name %s already exists", user.UserName))
 		log.Printf(appError.Message)

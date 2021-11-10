@@ -1,4 +1,4 @@
-package token
+package tokens
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 
 const template = "ws://fancy-chat.io/ws&token=%s"
 
-func Generate() *models.Token {
+func NewToken() *models.Token {
 	return &models.Token{
 		Url: fmt.Sprintf(template, uuid.New().String()),
 	}

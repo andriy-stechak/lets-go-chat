@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/andriystech/lgc/db/token"
-	userDao "github.com/andriystech/lgc/db/user"
+	"github.com/andriystech/lgc/db/tokens"
+	"github.com/andriystech/lgc/db/users"
 	"github.com/andriystech/lgc/errors"
 	"github.com/andriystech/lgc/models"
 	"github.com/andriystech/lgc/pkg/hasher"
@@ -29,7 +29,7 @@ func RegisterUserHandler(w http.ResponseWriter, r *http.Request) {
 		httpError.Send(w)
 		return
 	}
-	userId, appError := userDao.Save(user)
+	userId, appError := users.SaveUser(user)
 	if appError != nil {
 		httpError := errors.ToHttpError(appError)
 		log.Printf("Unable to save user. Reason: %s", appError.Error())
@@ -45,7 +45,7 @@ func LogInUserHandler(w http.ResponseWriter, r *http.Request) {
 		httpErr.Send(w)
 		return
 	}
-	user, appError := userDao.FindUserByName(c.UserName)
+	user, appError := users.FindUserByName(c.UserName)
 	if appError != nil {
 		httpError := errors.ToHttpError(appError)
 		errorMessage := fmt.Sprintf("Unable to log in user. Reason: %s", appError.Error())
@@ -59,7 +59,7 @@ func LogInUserHandler(w http.ResponseWriter, r *http.Request) {
 		httpError.Send(w)
 		return
 	}
-	SendJsonResponse(w, token.Generate(), http.StatusCreated)
+	SendJsonResponse(w, tokens.NewToken(), http.StatusCreated)
 }
 
 func fetchLogInCreds(r *http.Request) (*models.UserCreds, *errors.AppHttpError) {
