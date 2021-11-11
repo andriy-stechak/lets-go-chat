@@ -6,33 +6,39 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-
-	"github.com/andriystech/lgc/errors"
 )
 
-func ParseJsonBody(r *http.Request, v interface{}) (interface{}, *errors.AppHttpError) {
+type HttpErrorResponse struct {
+	Status  int    `json:"status"`
+	Message string `json:"message"`
+}
+
+func ParseJsonBody(r *http.Request, v interface{}) (interface{}, error) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Printf("Unable to read body. Reason: %s", err.Error())
-		appHttpError := errors.HttpBadRequest(err.Error())
-		return nil, appHttpError
+		return nil, err
 	}
 
 	if err := json.Unmarshal(body, v); err != nil {
 		log.Printf("Unable to parse JSON body. Reason: %s", err.Error())
-		appHttpError := errors.HttpBadRequest(err.Error())
-		return nil, appHttpError
+		return nil, err
 	}
 	return v, nil
 }
 
-func SendJsonResponse(w http.ResponseWriter, v interface{}, status int) {
+func sendErrorJsonResponse(w http.ResponseWriter, status int, message string) {
+	sendJsonResponse(w, HttpErrorResponse{
+		Status:  status,
+		Message: message,
+	}, status)
+}
+
+func sendJsonResponse(w http.ResponseWriter, v interface{}, status int) {
 	out, err := json.Marshal(v)
 	if err != nil {
 		log.Printf("Unable to create response. Reason: %s", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		appHttpError := errors.HttpInternalError(err.Error())
-		appHttpError.Send(w)
 		return
 	}
 	w.Header().Add("content-type", "application/json")

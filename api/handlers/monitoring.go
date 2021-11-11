@@ -9,5 +9,5 @@ type HealthCheckResult struct {
 }
 
 func HealthCheck(w http.ResponseWriter, r *http.Request) {
-	SendJsonResponse(w, HealthCheckResult{Status: "ok"}, http.StatusOK)
+	sendJsonResponse(w, HealthCheckResult{Status: "ok"}, http.StatusOK)
 }

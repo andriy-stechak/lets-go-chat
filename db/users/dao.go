@@ -1,10 +1,8 @@
 package users
 
 import (
-	"fmt"
-	"log"
+	"errors"
 
-	"github.com/andriystech/lgc/errors"
 	"github.com/andriystech/lgc/models"
 	"github.com/andriystech/lgc/pkg/hasher"
 	"github.com/google/uuid"
@@ -12,34 +10,31 @@ import (
 
 var storage = make(map[string]*models.User)
 
-func FindUserByName(name string) (*models.User, *errors.AppError) {
+var ErrUserNotFound = errors.New("user not found")
+var ErrUserWithNameAlreadyExists = errors.New("user with provided name already exists")
+
+func FindUserByName(name string) (*models.User, error) {
 	for _, user := range storage {
 		if user.UserName == name {
 			return user, nil
 		}
 	}
-	return nil, errors.NotFoundError(fmt.Sprintf("User with name %s not found", name))
+	return nil, ErrUserNotFound
 }
 
-func SaveUser(user *models.User) (string, *errors.AppError) {
+func SaveUser(user *models.User) (string, error) {
 	if _, err := FindUserByName(user.UserName); err == nil {
-		appError := errors.ConflictError(fmt.Sprintf("User with name %s already exists", user.UserName))
-		log.Printf(appError.Message)
-		return "", appError
+		return "", ErrUserWithNameAlreadyExists
 	}
 	id, err := uuid.NewUUID()
 	if err != nil {
-		appError := errors.GenericError(fmt.Sprintf("Unable to generate user id. Reason %s", err.Error()))
-		log.Printf(appError.Message)
-		return "", appError
+		return "", err
 	}
 
 	userId := id.String()
 	userPassword, err := hasher.HashPassword(user.Password)
 	if err != nil {
-		appError := errors.GenericError(fmt.Sprintf("Unable to hash user password. Reason %s", err.Error()))
-		log.Printf(appError.Message)
-		return "", appError
+		return "", err
 	}
 	user.Password = userPassword
 	storage[userId] = user

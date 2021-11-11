@@ -1,13 +1,13 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/andriystech/lgc/db/tokens"
 	"github.com/andriystech/lgc/db/users"
-	"github.com/andriystech/lgc/errors"
 	"github.com/andriystech/lgc/models"
 	"github.com/andriystech/lgc/pkg/hasher"
 )
@@ -18,82 +18,81 @@ type RegisterOutput struct {
 }
 
 func RegisterUserHandler(w http.ResponseWriter, r *http.Request) {
-	v, httpError := ParseJsonBody(r, &models.User{})
-	if httpError != nil {
-		httpError.Send(w)
+	v, err := ParseJsonBody(r, &models.User{})
+	if err != nil {
+		sendErrorJsonResponse(w, 400, err.Error())
 		return
 	}
 	user := v.(*models.User)
-	if httpError := validateUser(user); httpError != nil {
-		log.Printf("Invalid input. Reason: %s", httpError.Error())
-		httpError.Send(w)
+	if err := validateUser(user); err != nil {
+		log.Printf("Invalid input. Reason: %s", err.Error())
+		sendErrorJsonResponse(w, 400, err.Error())
 		return
 	}
-	userId, appError := users.SaveUser(user)
-	if appError != nil {
-		httpError := errors.ToHttpError(appError)
-		log.Printf("Unable to save user. Reason: %s", appError.Error())
-		httpError.Send(w)
+	userId, err := users.SaveUser(user)
+	if err != nil {
+		if errors.Is(err, users.ErrUserWithNameAlreadyExists) {
+			sendErrorJsonResponse(w, 409, err.Error())
+		} else {
+			sendErrorJsonResponse(w, 500, err.Error())
+		}
 		return
 	}
-	SendJsonResponse(w, RegisterOutput{Id: userId, UserName: user.UserName}, http.StatusCreated)
+	sendJsonResponse(w, RegisterOutput{Id: userId, UserName: user.UserName}, http.StatusCreated)
 }
 
 func LogInUserHandler(w http.ResponseWriter, r *http.Request) {
-	c, httpErr := fetchLogInCreds(r)
-	if httpErr != nil {
-		httpErr.Send(w)
+	c, err := fetchLogInCreds(r)
+	if err != nil {
+		sendErrorJsonResponse(w, 400, err.Error())
 		return
 	}
-	user, appError := users.FindUserByName(c.UserName)
-	if appError != nil {
-		httpError := errors.ToHttpError(appError)
-		errorMessage := fmt.Sprintf("Unable to log in user. Reason: %s", appError.Error())
-		log.Print(errorMessage)
-		httpError.Send(w)
+	user, err := users.FindUserByName(c.UserName)
+	if err != nil {
+		if errors.Is(err, users.ErrUserNotFound) {
+			sendErrorJsonResponse(w, 401, "Unable to log in user. Reason: Invalid creds")
+		} else {
+			sendErrorJsonResponse(w, 500, err.Error())
+		}
 		return
 	}
 	if !hasher.CheckPasswordHash(c.Password, user.Password) {
-		httpError := errors.HttpUnauthorized("Unable to log in user. Reason: Invalid creds")
-		log.Println(httpError.Error())
-		httpError.Send(w)
+		sendErrorJsonResponse(w, 401, "Unable to log in user. Reason: Invalid creds")
 		return
 	}
-	SendJsonResponse(w, tokens.NewToken(), http.StatusCreated)
+	sendJsonResponse(w, tokens.NewToken(), http.StatusCreated)
 }
 
-func fetchLogInCreds(r *http.Request) (*models.UserCreds, *errors.AppHttpError) {
-	v, httpError := ParseJsonBody(r, &models.UserCreds{})
-	if httpError != nil {
-		return nil, httpError
+func fetchLogInCreds(r *http.Request) (*models.UserCreds, error) {
+	v, err := ParseJsonBody(r, &models.UserCreds{})
+	if err != nil {
+		return nil, err
 	}
 	cred := v.(*models.UserCreds)
-	if httpError := validateCreds(cred); httpError != nil {
-		log.Printf("Invalid input. Reason: %s", httpError.Error())
-		return nil, httpError
+	if err := validateCreds(cred); err != nil {
+		log.Printf("Invalid input. Reason: %s", err.Error())
+		return nil, err
 	}
 
 	return cred, nil
 }
 
-func validateUser(user *models.User) *errors.AppHttpError {
+func validateUser(user *models.User) error {
 	if len(user.UserName) < models.NameMinLength {
-		errorMessage := fmt.Sprintf("Field 'userName' was not provided inside body or length less than %d", models.NameMinLength)
-		return errors.HttpBadRequest(errorMessage)
+		return fmt.Errorf("field 'userName' was not provided inside body or length less than %d", models.NameMinLength)
 	}
 	if len(user.Password) < models.PasswordMinLength {
-		errorMessage := fmt.Sprintf("Field 'password' was not provided inside body or length less than %d", models.PasswordMinLength)
-		return errors.HttpBadRequest(errorMessage)
+		return fmt.Errorf("field 'password' was not provided inside body or length less than %d", models.PasswordMinLength)
 	}
 	return nil
 }
 
-func validateCreds(creds *models.UserCreds) *errors.AppHttpError {
+func validateCreds(creds *models.UserCreds) error {
 	if len(creds.UserName) == 0 {
-		return errors.HttpBadRequest("Field 'userName' was not provided inside body")
+		return errors.New("field 'userName' was not provided inside body")
 	}
 	if len(creds.Password) == 0 {
-		return errors.HttpBadRequest("Field 'password' was not provided inside body")
+		return errors.New("field 'password' was not provided inside body")
 	}
 	return nil
 }
