@@ -6,4 +6,8 @@ This is simple chat application
 
 ## Run
 
-### go run ./cmd/chat/entry.go
+### go run ./main.go
+
+## Build
+
+### docker build . -t <repo>:<version>
