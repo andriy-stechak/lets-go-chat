@@ -4,8 +4,6 @@ import (
 	"errors"
 
 	"github.com/andriystech/lgc/models"
-	"github.com/andriystech/lgc/pkg/hasher"
-	"github.com/google/uuid"
 )
 
 var storage = make(map[string]*models.User)
@@ -26,17 +24,6 @@ func SaveUser(user *models.User) (string, error) {
 	if _, err := FindUserByName(user.UserName); err == nil {
 		return "", ErrUserWithNameAlreadyExists
 	}
-	id, err := uuid.NewUUID()
-	if err != nil {
-		return "", err
-	}
-
-	userId := id.String()
-	userPassword, err := hasher.HashPassword(user.Password)
-	if err != nil {
-		return "", err
-	}
-	user.Password = userPassword
-	storage[userId] = user
-	return userId, nil
+	storage[user.Id] = user
+	return user.Id, nil
 }

@@ -17,25 +17,39 @@ type RegisterOutput struct {
 	UserName string `json:"userName"`
 }
 
+type RegisterInput struct {
+	UserName string `json:"userName"`
+	Password string `json:"password"`
+}
+
+type UserCredsInput struct {
+	UserName string `json:"userName"`
+	Password string `json:"password"`
+}
+
 func RegisterUserHandler(w http.ResponseWriter, r *http.Request) {
-	v, err := ParseJsonBody(r, &models.User{})
+	v, err := ParseJsonBody(r, &RegisterInput{})
 	if err != nil {
-		sendErrorJsonResponse(w, 400, err.Error())
+		sendErrorJsonResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	user := v.(*models.User)
-	if err := validateUser(user); err != nil {
+	userInputData := v.(*RegisterInput)
+	if err := validateUserRegistrationData(userInputData); err != nil {
 		log.Printf("Invalid input. Reason: %s", err.Error())
-		sendErrorJsonResponse(w, 400, err.Error())
+		sendErrorJsonResponse(w, http.StatusBadRequest, err.Error())
 		return
+	}
+	user, err := models.NewUser(userInputData.UserName, userInputData.Password)
+	if err != nil {
+		sendErrorJsonResponse(w, http.StatusInternalServerError, err.Error())
 	}
 	userId, err := users.SaveUser(user)
+	if errors.Is(err, users.ErrUserWithNameAlreadyExists) {
+		sendErrorJsonResponse(w, http.StatusConflict, err.Error())
+		return
+	}
 	if err != nil {
-		if errors.Is(err, users.ErrUserWithNameAlreadyExists) {
-			sendErrorJsonResponse(w, 409, err.Error())
-		} else {
-			sendErrorJsonResponse(w, 500, err.Error())
-		}
+		sendErrorJsonResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	sendJsonResponse(w, RegisterOutput{Id: userId, UserName: user.UserName}, http.StatusCreated)
@@ -44,31 +58,30 @@ func RegisterUserHandler(w http.ResponseWriter, r *http.Request) {
 func LogInUserHandler(w http.ResponseWriter, r *http.Request) {
 	c, err := fetchLogInCreds(r)
 	if err != nil {
-		sendErrorJsonResponse(w, 400, err.Error())
+		sendErrorJsonResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	user, err := users.FindUserByName(c.UserName)
-	if err != nil {
-		if errors.Is(err, users.ErrUserNotFound) {
-			sendErrorJsonResponse(w, 401, "Unable to log in user. Reason: Invalid creds")
-		} else {
-			sendErrorJsonResponse(w, 500, err.Error())
-		}
+	if errors.Is(err, users.ErrUserNotFound) {
+		sendErrorJsonResponse(w, http.StatusUnauthorized, "Unable to log in user. Reason: Invalid creds")
 		return
+	}
+	if err != nil {
+		sendErrorJsonResponse(w, http.StatusInternalServerError, err.Error())
 	}
 	if !hasher.CheckPasswordHash(c.Password, user.Password) {
-		sendErrorJsonResponse(w, 401, "Unable to log in user. Reason: Invalid creds")
+		sendErrorJsonResponse(w, http.StatusUnauthorized, "Unable to log in user. Reason: Invalid creds")
 		return
 	}
-	sendJsonResponse(w, tokens.NewToken(), http.StatusCreated)
+	sendJsonResponse(w, tokens.Generate(), http.StatusCreated)
 }
 
-func fetchLogInCreds(r *http.Request) (*models.UserCreds, error) {
-	v, err := ParseJsonBody(r, &models.UserCreds{})
+func fetchLogInCreds(r *http.Request) (*UserCredsInput, error) {
+	v, err := ParseJsonBody(r, &UserCredsInput{})
 	if err != nil {
 		return nil, err
 	}
-	cred := v.(*models.UserCreds)
+	cred := v.(*UserCredsInput)
 	if err := validateCreds(cred); err != nil {
 		log.Printf("Invalid input. Reason: %s", err.Error())
 		return nil, err
@@ -77,17 +90,17 @@ func fetchLogInCreds(r *http.Request) (*models.UserCreds, error) {
 	return cred, nil
 }
 
-func validateUser(user *models.User) error {
-	if len(user.UserName) < models.NameMinLength {
+func validateUserRegistrationData(data *RegisterInput) error {
+	if len(data.UserName) < models.NameMinLength {
 		return fmt.Errorf("field 'userName' was not provided inside body or length less than %d", models.NameMinLength)
 	}
-	if len(user.Password) < models.PasswordMinLength {
+	if len(data.Password) < models.PasswordMinLength {
 		return fmt.Errorf("field 'password' was not provided inside body or length less than %d", models.PasswordMinLength)
 	}
 	return nil
 }
 
-func validateCreds(creds *models.UserCreds) error {
+func validateCreds(creds *UserCredsInput) error {
 	if len(creds.UserName) == 0 {
 		return errors.New("field 'userName' was not provided inside body")
 	}
