@@ -1,23 +1,35 @@
 package config
 
-import "os"
+import (
+	"os"
+	"time"
+)
 
 type ServerConfig struct {
-	Port string
+	Port                         string
+	MongoDbUrl                   string
+	DbName                       string
+	DbConnectionTimeoutInSeconds int
 }
 
 const defaultPort = ":8090"
+const defaultMongoDbURL = "mongodb://root:123456@localhost:27017"
+const defaultDbName = "lgc"
 
 func GetServerConfig() *ServerConfig {
+
 	return &ServerConfig{
-		Port: getPort(),
+		Port:                         env("SERVER_PORT", defaultPort),
+		MongoDbUrl:                   env("MONGODB_URL", defaultMongoDbURL),
+		DbName:                       env("MONGO_DB_NAME", defaultDbName),
+		DbConnectionTimeoutInSeconds: int(time.Second * 20),
 	}
 }
 
-func getPort() string {
-	port, ok := os.LookupEnv("SERVER_PORT")
+func env(variable string, defaultValue string) string {
+	value, ok := os.LookupEnv(variable)
 	if !ok {
-		port = defaultPort
+		value = defaultValue
 	}
-	return port
+	return value
 }
