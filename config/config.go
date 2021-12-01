@@ -10,6 +10,7 @@ type ServerConfig struct {
 	MongoDbUrl                   string
 	DbName                       string
 	DbConnectionTimeoutInSeconds int
+	TokenTTLInSeconds            int
 }
 
 const defaultPort = ":8090"
@@ -23,6 +24,7 @@ func GetServerConfig() *ServerConfig {
 		MongoDbUrl:                   env("MONGODB_URL", defaultMongoDbURL),
 		DbName:                       env("MONGO_DB_NAME", defaultDbName),
 		DbConnectionTimeoutInSeconds: int(time.Second * 20),
+		TokenTTLInSeconds:            int(time.Second * 60),
 	}
 }
 

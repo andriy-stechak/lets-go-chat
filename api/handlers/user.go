@@ -17,6 +17,18 @@ type RegisterOutput struct {
 	UserName string `json:"userName"`
 }
 
+type LoginOutput struct {
+	Url string `json:"url"`
+}
+
+type ActiveConnectionsOutput struct {
+	Count int `json:"count"`
+}
+
+type ActiveUsersOutput struct {
+	Users []string `json:"users"`
+}
+
 type RegisterInput struct {
 	UserName string `json:"userName"`
 	Password string `json:"password"`
@@ -27,58 +39,95 @@ type UserCredsInput struct {
 	Password string `json:"password"`
 }
 
-func RegisterUserHandler(svc *services.UserService) http.HandlerFunc {
+func RegisterUserHandler(usvc *services.UserService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		v, err := ParseJsonBody(r, &RegisterInput{})
 		if err != nil {
-			sendErrorJsonResponse(w, http.StatusBadRequest, err.Error())
+			SendErrorJsonResponse(w, http.StatusBadRequest, err.Error())
 			return
 		}
 		userInputData := v.(*RegisterInput)
 		if err := validateUserRegistrationData(userInputData); err != nil {
 			log.Printf("Invalid input. Reason: %s", err.Error())
-			sendErrorJsonResponse(w, http.StatusBadRequest, err.Error())
+			SendErrorJsonResponse(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		user, err := svc.NewUser(userInputData.UserName, userInputData.Password)
+		user, err := usvc.NewUser(userInputData.UserName, userInputData.Password)
 		if err != nil {
-			sendErrorJsonResponse(w, http.StatusInternalServerError, err.Error())
+			SendErrorJsonResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		userId, err := svc.SaveUser(r.Context(), user)
+		userId, err := usvc.SaveUser(r.Context(), user)
 		if errors.Is(err, repositories.ErrUserWithNameAlreadyExists) {
-			sendErrorJsonResponse(w, http.StatusConflict, err.Error())
+			SendErrorJsonResponse(w, http.StatusConflict, err.Error())
 			return
 		}
 		if err != nil {
-			sendErrorJsonResponse(w, http.StatusInternalServerError, err.Error())
+			SendErrorJsonResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		sendJsonResponse(w, RegisterOutput{Id: userId, UserName: user.UserName}, http.StatusCreated)
 	}
 }
 
-func LogInUserHandler(svc *services.UserService) http.HandlerFunc {
+func LogInUserHandler(usvc *services.UserService, tsvc *services.TokenService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c, err := fetchLogInCreds(r)
 		if err != nil {
-			sendErrorJsonResponse(w, http.StatusBadRequest, err.Error())
+			SendErrorJsonResponse(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		user, err := svc.FindUserByName(r.Context(), c.UserName)
+		user, err := usvc.FindUserByName(r.Context(), c.UserName)
 		if errors.Is(err, repositories.ErrUserNotFound) {
-			sendErrorJsonResponse(w, http.StatusUnauthorized, "Unable to log in user. Reason: Invalid creds")
+			SendErrorJsonResponse(w, http.StatusUnauthorized, "Unable to log in user. Reason: Invalid creds")
 			return
 		}
 		if err != nil {
-			sendErrorJsonResponse(w, http.StatusInternalServerError, err.Error())
+			SendErrorJsonResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		if !hasher.CheckPasswordHash(c.Password, user.Password) {
-			sendErrorJsonResponse(w, http.StatusUnauthorized, "Unable to log in user. Reason: Invalid creds")
+			SendErrorJsonResponse(w, http.StatusUnauthorized, "Unable to log in user. Reason: Invalid creds")
 			return
 		}
-		sendJsonResponse(w, services.NewToken(), http.StatusCreated)
+		token, err := tsvc.GenerateToken(r.Context(), user)
+		if err != nil {
+			SendErrorJsonResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		sendJsonResponse(w, composeLoginOutput(r, token), http.StatusCreated)
+	}
+}
+
+func ActiveConnectionsCountHandler(wssvc *services.WebSocketService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		connectionsCount, err := wssvc.GetActiveConnectionsCount(r.Context())
+		if err != nil {
+			SendErrorJsonResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		sendJsonResponse(w, &ActiveConnectionsOutput{
+			Count: connectionsCount,
+		}, http.StatusOK)
+	}
+}
+
+func ActiveUsersHandler(wssvc *services.WebSocketService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		activeUsers, err := wssvc.GetActiveUsers(r.Context())
+		if err != nil {
+			SendErrorJsonResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		sendJsonResponse(w, &ActiveUsersOutput{
+			Users: activeUsers,
+		}, http.StatusOK)
+	}
+}
+
+func composeLoginOutput(r *http.Request, token *models.Token) *LoginOutput {
+	return &LoginOutput{
+		Url: fmt.Sprintf("ws://%s/chat/ws.rtm.start?token=%s", r.Host, token.Payload),
 	}
 }
 
