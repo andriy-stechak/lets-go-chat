@@ -7,15 +7,17 @@ info:
     url: http://www.apache.org/licenses/LICENSE-2.0.html
   version: 1.0.0
 servers:
-- url: /v1
+  - url: /v1
 tags:
-- name: user
-  description: Operations about user
+  - name: user
+    description: Operations about user
+  - name: chat
+    description: Operations related to chat
 paths:
   /user:
     post:
       tags:
-      - user
+        - user
       summary: Register (create) user
       operationId: createUser
       requestBody:
@@ -23,7 +25,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateUserRequest'
+              $ref: "#/components/schemas/CreateUserRequest"
         required: true
       responses:
         200:
@@ -31,7 +33,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CreateUserResponse'
+                $ref: "#/components/schemas/CreateUserResponse"
         400:
           description: Bad request, empty username or id
           content: {}
@@ -42,7 +44,7 @@ paths:
   /user/login:
     post:
       tags:
-      - user
+        - user
       summary: Logs user into the system
       operationId: loginUser
       requestBody:
@@ -50,7 +52,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LoginUserRequest'
+              $ref: "#/components/schemas/LoginUserRequest"
         required: true
       responses:
         200:
@@ -69,9 +71,49 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LoginUserResonse'
+                $ref: "#/components/schemas/LoginUserResonse"
         400:
           description: Invalid username/password
+          content: {}
+        500:
+          description: Internal Server Error
+          content: {}
+  /user/active:
+    get:
+      tags:
+        - user
+        - chat
+      summary: Number of active users in a chat
+      operationId: getActiveUsers
+      responses:
+        200:
+          description: successful operation, returns number of active users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActiveUsersResponse"
+        500:
+          description: Internal Server Error
+          content: {}
+  /chat/ws.rtm.start:
+    get:
+      tags:
+        - chat
+      summary: Endpoint to start real time chat
+      operationId: wsRTMStart
+      parameters:
+        - name: token
+          in: query
+          required: true
+          description: One time token for a loged user
+          schema:
+            type: string
+      responses:
+        101:
+          description: Upgrade to websocket protocol
+          content: {}
+        400:
+          description: Invalid token
           content: {}
         500:
           description: Internal Server Error
@@ -80,8 +122,8 @@ components:
   schemas:
     LoginUserRequest:
       required:
-      - password
-      - userName
+        - password
+        - userName
       type: object
       properties:
         userName:
@@ -92,7 +134,7 @@ components:
           description: The password for login in clear text
     LoginUserResonse:
       required:
-      - url
+        - url
       type: object
       properties:
         url:
@@ -101,8 +143,8 @@ components:
           example: ws://fancy-chat.io/ws&token=one-time-token
     CreateUserRequest:
       required:
-      - password
-      - userName
+        - password
+        - userName
       type: object
       properties:
         userName:
@@ -119,3 +161,10 @@ components:
           format: uuid
         userName:
           type: string
+    ActiveUsersResponse:
+      required:
+        - count
+      type: object
+      properties:
+        count:
+          type: integer

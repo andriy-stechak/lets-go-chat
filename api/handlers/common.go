@@ -27,7 +27,7 @@ func ParseJsonBody(r *http.Request, v interface{}) (interface{}, error) {
 	return v, nil
 }
 
-func sendErrorJsonResponse(w http.ResponseWriter, status int, message string) {
+func SendErrorJsonResponse(w http.ResponseWriter, status int, message string) {
 	sendJsonResponse(w, HttpErrorResponse{
 		Status:  status,
 		Message: message,
