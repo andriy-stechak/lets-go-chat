@@ -11,26 +11,36 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type WebSocketService struct {
-	connections *repositories.ConnectionsRepository
+type WebSocketService interface {
+	NewConnection(http.ResponseWriter, *http.Request, *models.User) error
+	GetActiveConnectionsCount(context.Context) (int, error)
+	GetActiveUsers(context.Context) ([]string, error)
+}
+
+type webSocketService struct {
+	connections repositories.ConnectionsRepository
 	upgrader    websocket.Upgrader
 }
 
-func NewWebSocketService(pool *repositories.ConnectionsRepository) *WebSocketService {
-	return &WebSocketService{
-		connections: pool,
-		upgrader: websocket.Upgrader{
-			ReadBufferSize:  1024,
-			WriteBufferSize: 1024,
-			// Disable cross domain check
-			CheckOrigin: func(r *http.Request) bool {
-				return true
-			},
+func NewUpdater() websocket.Upgrader {
+	return websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+		// Disable cross domain check
+		CheckOrigin: func(r *http.Request) bool {
+			return true
 		},
 	}
 }
 
-func (svc *WebSocketService) NewConnection(w http.ResponseWriter, r *http.Request, user *models.User) error {
+func NewWebSocketService(cr repositories.ConnectionsRepository, wu websocket.Upgrader) WebSocketService {
+	return &webSocketService{
+		connections: cr,
+		upgrader:    wu,
+	}
+}
+
+func (svc *webSocketService) NewConnection(w http.ResponseWriter, r *http.Request, user *models.User) error {
 	c, err := svc.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("Uable to establish web socket connection. Reason: %s", err.Error())
@@ -64,10 +74,10 @@ func (svc *WebSocketService) NewConnection(w http.ResponseWriter, r *http.Reques
 	return nil
 }
 
-func (svc *WebSocketService) GetActiveConnectionsCount(ctx context.Context) (int, error) {
+func (svc *webSocketService) GetActiveConnectionsCount(ctx context.Context) (int, error) {
 	return svc.connections.CountConnections(ctx)
 }
 
-func (svc *WebSocketService) GetActiveUsers(ctx context.Context) ([]string, error) {
+func (svc *webSocketService) GetActiveUsers(ctx context.Context) ([]string, error) {
 	return svc.connections.ConnectedClients(ctx)
 }

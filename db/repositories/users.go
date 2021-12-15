@@ -6,26 +6,29 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/andriystech/lgc/config"
+	"github.com/andriystech/lgc/helpers/mongo"
 	"github.com/andriystech/lgc/models"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 var ErrUserNotFound = errors.New("user not found")
 var ErrUserWithNameAlreadyExists = errors.New("user with provided name already exists")
 
-type UsersRepository struct {
-	db *mongo.Collection
+type UsersRepository interface {
+	SaveUser(context.Context, *models.User) (string, error)
+	FindUserByName(context.Context, string) (*models.User, error)
 }
 
-func NewUsersRepository(client *mongo.Client) *UsersRepository {
-	serverConfig := config.GetServerConfig()
-	return &UsersRepository{
-		db: client.Database(serverConfig.DbName).Collection("users"),
+type usersRepository struct {
+	db mongo.CollectionHelper
+}
+
+func NewUsersRepository(db mongo.CollectionHelper) UsersRepository {
+	return &usersRepository{
+		db: db,
 	}
 }
 
-func (r *UsersRepository) SaveUser(ctx context.Context, user *models.User) (string, error) {
+func (r *usersRepository) SaveUser(ctx context.Context, user *models.User) (string, error) {
 	if _, err := r.FindUserByName(ctx, user.UserName); err == nil {
 		return "", ErrUserWithNameAlreadyExists
 	}
@@ -34,10 +37,10 @@ func (r *UsersRepository) SaveUser(ctx context.Context, user *models.User) (stri
 		log.Printf("Unable to save user data into database. Reason: %s", err.Error())
 		return "", err
 	}
-	return fmt.Sprintf("%v", res.InsertedID), nil
+	return fmt.Sprintf("%v", res), nil
 }
 
-func (r *UsersRepository) FindUserByName(ctx context.Context, name string) (*models.User, error) {
+func (r *usersRepository) FindUserByName(ctx context.Context, name string) (*models.User, error) {
 	var user models.User
 	err := r.db.FindOne(
 		ctx,

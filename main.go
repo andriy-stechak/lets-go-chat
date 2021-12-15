@@ -6,8 +6,7 @@ import (
 
 	"github.com/andriystech/lgc/api/server"
 	"github.com/andriystech/lgc/config"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"github.com/andriystech/lgc/helpers/mongo"
 )
 
 func main() {
@@ -17,7 +16,8 @@ func main() {
 		time.Duration(serverConfig.DbConnectionTimeoutInSeconds),
 	)
 	defer cancel()
-	db, err := mongo.Connect(ctx, options.Client().ApplyURI(serverConfig.MongoDbUrl))
+	db, err := mongo.NewClient(serverConfig)
+	db.Connect(ctx)
 	if err != nil {
 		panic(err)
 	}

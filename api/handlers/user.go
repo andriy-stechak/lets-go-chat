@@ -39,7 +39,7 @@ type UserCredsInput struct {
 	Password string `json:"password"`
 }
 
-func RegisterUserHandler(usvc *services.UserService) http.HandlerFunc {
+func RegisterUserHandler(usvc services.UserService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		v, err := ParseJsonBody(r, &RegisterInput{})
 		if err != nil {
@@ -70,7 +70,7 @@ func RegisterUserHandler(usvc *services.UserService) http.HandlerFunc {
 	}
 }
 
-func LogInUserHandler(usvc *services.UserService, tsvc *services.TokenService) http.HandlerFunc {
+func LogInUserHandler(usvc services.UserService, tsvc services.TokenService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c, err := fetchLogInCreds(r)
 		if err != nil {
@@ -99,7 +99,7 @@ func LogInUserHandler(usvc *services.UserService, tsvc *services.TokenService) h
 	}
 }
 
-func ActiveConnectionsCountHandler(wssvc *services.WebSocketService) http.HandlerFunc {
+func ActiveConnectionsCountHandler(wssvc services.WebSocketService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		connectionsCount, err := wssvc.GetActiveConnectionsCount(r.Context())
 		if err != nil {
@@ -112,7 +112,7 @@ func ActiveConnectionsCountHandler(wssvc *services.WebSocketService) http.Handle
 	}
 }
 
-func ActiveUsersHandler(wssvc *services.WebSocketService) http.HandlerFunc {
+func ActiveUsersHandler(wssvc services.WebSocketService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		activeUsers, err := wssvc.GetActiveUsers(r.Context())
 		if err != nil {

@@ -13,24 +13,31 @@ import (
 var ErrConnIdConflict = errors.New("duplication of connection id")
 var ErrConnNotFound = errors.New("connection with provided id not found")
 
+type ConnectionsRepository interface {
+	AddConnection(context.Context, string, *websocket.Conn, *models.User) error
+	DeleteConnection(context.Context, string) error
+	CountConnections(context.Context) (int, error)
+	ConnectedClients(context.Context) ([]string, error)
+}
+
 type ConnectionRecord struct {
 	conn *websocket.Conn
 	usr  *models.User
 }
 
-type ConnectionsRepository struct {
+type connectionsStorage struct {
 	db map[string]*ConnectionRecord
 	mu *sync.Mutex
 }
 
-func NewConnectionsRepository() *ConnectionsRepository {
-	return &ConnectionsRepository{
+func NewConnectionsRepository() ConnectionsRepository {
+	return &connectionsStorage{
 		db: map[string]*ConnectionRecord{},
 		mu: &sync.Mutex{},
 	}
 }
 
-func (r *ConnectionsRepository) AddConnection(ctx context.Context, id string, connection *websocket.Conn, usr *models.User) error {
+func (r *connectionsStorage) AddConnection(ctx context.Context, id string, connection *websocket.Conn, usr *models.User) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.db[id] != nil {
@@ -43,7 +50,7 @@ func (r *ConnectionsRepository) AddConnection(ctx context.Context, id string, co
 	return nil
 }
 
-func (r *ConnectionsRepository) DeleteConnection(ctx context.Context, id string) error {
+func (r *connectionsStorage) DeleteConnection(ctx context.Context, id string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.db[id] == nil {
@@ -53,13 +60,13 @@ func (r *ConnectionsRepository) DeleteConnection(ctx context.Context, id string)
 	return nil
 }
 
-func (r *ConnectionsRepository) CountConnections(ctx context.Context) (int, error) {
+func (r *connectionsStorage) CountConnections(ctx context.Context) (int, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	return len(r.db), nil
 }
 
-func (r *ConnectionsRepository) ConnectedClients(ctx context.Context) ([]string, error) {
+func (r *connectionsStorage) ConnectedClients(ctx context.Context) ([]string, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	var res []string = []string{}

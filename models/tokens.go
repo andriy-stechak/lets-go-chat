@@ -5,7 +5,6 @@ type Token struct {
 }
 
 func NewToken(token string) *Token {
-
 	return &Token{
 		Payload: token,
 	}

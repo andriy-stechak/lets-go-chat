@@ -6,7 +6,7 @@ import (
 	"github.com/andriystech/lgc/services"
 )
 
-func WSConnectHandler(ws *services.WebSocketService, ts *services.TokenService) http.HandlerFunc {
+func WSConnectHandler(ws services.WebSocketService, ts services.TokenService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()
 		token, ok := q["token"]
