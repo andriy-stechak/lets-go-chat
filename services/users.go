@@ -9,23 +9,24 @@ import (
 	"github.com/google/uuid"
 )
 
-type UserService struct {
-	storage *repositories.UsersRepository
+type UserService interface {
+	NewUser(string, string) (*models.User, error)
+	FindUserByName(context.Context, string) (*models.User, error)
+	SaveUser(context.Context, *models.User) (string, error)
 }
 
-func NewUserService(storage *repositories.UsersRepository) *UserService {
-	return &UserService{
+type userService struct {
+	storage repositories.UsersRepository
+}
+
+func NewUserService(storage repositories.UsersRepository) UserService {
+	return &userService{
 		storage: storage,
 	}
 }
 
-func (svc *UserService) NewUser(name, password string) (*models.User, error) {
-	id, err := uuid.NewUUID()
-	if err != nil {
-		return nil, err
-	}
-
-	userId := id.String()
+func (svc *userService) NewUser(name, password string) (*models.User, error) {
+	userId := uuid.NewString()
 	passwordHash, err := hasher.HashPassword(password)
 	if err != nil {
 		return nil, err
@@ -33,10 +34,10 @@ func (svc *UserService) NewUser(name, password string) (*models.User, error) {
 	return models.NewUser(userId, name, passwordHash), nil
 }
 
-func (svc *UserService) FindUserByName(ctx context.Context, name string) (*models.User, error) {
+func (svc *userService) FindUserByName(ctx context.Context, name string) (*models.User, error) {
 	return svc.storage.FindUserByName(ctx, name)
 }
 
-func (svc *UserService) SaveUser(ctx context.Context, user *models.User) (string, error) {
+func (svc *userService) SaveUser(ctx context.Context, user *models.User) (string, error) {
 	return svc.storage.SaveUser(ctx, user)
 }

@@ -8,17 +8,22 @@ import (
 	"github.com/google/uuid"
 )
 
-type TokenService struct {
-	storage *repositories.TokensRepository
+type TokenService interface {
+	GenerateToken(context.Context, *models.User) (*models.Token, error)
+	GetUserByToken(context.Context, string) (*models.User, error)
 }
 
-func NewTokenService(storage *repositories.TokensRepository) *TokenService {
-	return &TokenService{
+type tokenService struct {
+	storage repositories.TokensRepository
+}
+
+func NewTokenService(storage repositories.TokensRepository) TokenService {
+	return &tokenService{
 		storage: storage,
 	}
 }
 
-func (svc *TokenService) GenerateToken(ctx context.Context, user *models.User) (*models.Token, error) {
+func (svc *tokenService) GenerateToken(ctx context.Context, user *models.User) (*models.Token, error) {
 	token := models.NewToken(uuid.NewString())
 	err := svc.storage.SaveToken(ctx, token.Payload, user)
 	if err != nil {
@@ -27,7 +32,7 @@ func (svc *TokenService) GenerateToken(ctx context.Context, user *models.User) (
 	return token, nil
 }
 
-func (svc *TokenService) GetUserByToken(ctx context.Context, token string) (*models.User, error) {
+func (svc *tokenService) GetUserByToken(ctx context.Context, token string) (*models.User, error) {
 	user, err := svc.storage.GetUserByToken(ctx, token)
 	if err != nil {
 		return nil, err

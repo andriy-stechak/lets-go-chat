@@ -6,34 +6,37 @@ import (
 	"sync"
 	"time"
 
-	"github.com/andriystech/lgc/config"
 	"github.com/andriystech/lgc/models"
 )
 
 var ErrTokenNotFound = errors.New("token not found")
 var ErrTokenExpired = errors.New("token has been expired")
 
+type TokensRepository interface {
+	SaveToken(context.Context, string, *models.User) error
+	GetUserByToken(context.Context, string) (*models.User, error)
+}
+
 type inMemoryRecord struct {
 	user      *models.User
 	expiresAt int
 }
 
-type TokensRepository struct {
+type tokensStorage struct {
 	db  map[string]*inMemoryRecord
 	ttl int
 	mu  *sync.Mutex
 }
 
-func NewTokensRepository() *TokensRepository {
-	serviceConfig := config.GetServerConfig()
-	return &TokensRepository{
+func NewTokensRepository(ttl int) TokensRepository {
+	return &tokensStorage{
 		db:  map[string]*inMemoryRecord{},
-		ttl: serviceConfig.TokenTTLInSeconds,
+		ttl: ttl,
 		mu:  &sync.Mutex{},
 	}
 }
 
-func (r *TokensRepository) SaveToken(ctx context.Context, token string, user *models.User) error {
+func (r *tokensStorage) SaveToken(ctx context.Context, token string, user *models.User) error {
 	// TODO: Use real storage for tokens
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -45,7 +48,7 @@ func (r *TokensRepository) SaveToken(ctx context.Context, token string, user *mo
 	return nil
 }
 
-func (r *TokensRepository) GetUserByToken(ctx context.Context, token string) (*models.User, error) {
+func (r *tokensStorage) GetUserByToken(ctx context.Context, token string) (*models.User, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	record := r.db[token]
