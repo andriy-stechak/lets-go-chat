@@ -5,7 +5,7 @@ package mocks
 import (
 	context "context"
 
-	mongo "github.com/andriystech/lgc/helpers/mongo"
+	mongo "github.com/andriystech/lgc/facilities/mongo"
 	mock "github.com/stretchr/testify/mock"
 )
 

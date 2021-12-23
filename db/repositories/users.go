@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/andriystech/lgc/helpers/mongo"
+	"github.com/andriystech/lgc/facilities/mongo"
 	"github.com/andriystech/lgc/models"
 )
 

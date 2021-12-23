@@ -9,7 +9,7 @@ import (
 )
 
 func TestSaveTokenSuccess(t *testing.T) {
-	ctx := context.TODO()
+	ctx := context.Background()
 	repo := NewTokensRepository(10)
 
 	gotErr := repo.SaveToken(ctx, "token", &models.User{})
@@ -19,7 +19,7 @@ func TestSaveTokenSuccess(t *testing.T) {
 
 func TestGetUserByTokenSuccess(t *testing.T) {
 	wantUsr := &models.User{Id: "someid"}
-	ctx := context.TODO()
+	ctx := context.Background()
 	repo := NewTokensRepository(10)
 	repo.SaveToken(ctx, "token", &models.User{Id: "someid"})
 
@@ -30,7 +30,7 @@ func TestGetUserByTokenSuccess(t *testing.T) {
 }
 
 func TestGetUserByTokenNotFound(t *testing.T) {
-	ctx := context.TODO()
+	ctx := context.Background()
 	repo := NewTokensRepository(10)
 	repo.SaveToken(ctx, "token", &models.User{Id: "someid"})
 
@@ -41,7 +41,7 @@ func TestGetUserByTokenNotFound(t *testing.T) {
 }
 
 func TestGetUserByTokenExpired(t *testing.T) {
-	ctx := context.TODO()
+	ctx := context.Background()
 	repo := NewTokensRepository(-1)
 	repo.SaveToken(ctx, "token", &models.User{Id: "someid"})
 

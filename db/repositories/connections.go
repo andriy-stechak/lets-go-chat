@@ -20,19 +20,19 @@ type ConnectionsRepository interface {
 	ConnectedClients(context.Context) ([]string, error)
 }
 
-type ConnectionRecord struct {
+type connectionRecord struct {
 	conn *websocket.Conn
 	usr  *models.User
 }
 
 type connectionsStorage struct {
-	db map[string]*ConnectionRecord
+	db map[string]*connectionRecord
 	mu *sync.Mutex
 }
 
 func NewConnectionsRepository() ConnectionsRepository {
 	return &connectionsStorage{
-		db: map[string]*ConnectionRecord{},
+		db: map[string]*connectionRecord{},
 		mu: &sync.Mutex{},
 	}
 }
@@ -43,7 +43,7 @@ func (r *connectionsStorage) AddConnection(ctx context.Context, id string, conne
 	if r.db[id] != nil {
 		return ErrConnIdConflict
 	}
-	r.db[id] = &ConnectionRecord{
+	r.db[id] = &connectionRecord{
 		conn: connection,
 		usr:  usr,
 	}

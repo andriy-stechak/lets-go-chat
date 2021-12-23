@@ -10,7 +10,7 @@ import (
 )
 
 func TestGetActiveConnectionsCountSuccess(t *testing.T) {
-	ctx := context.TODO()
+	ctx := context.Background()
 	cr := new(mocks.ConnectionsRepository)
 	count := 1
 	cr.On("CountConnections", ctx).Return(count, nil)
@@ -20,10 +20,12 @@ func TestGetActiveConnectionsCountSuccess(t *testing.T) {
 
 	assert.Nil(t, gotErr, "GetActiveConnectionsCount returned unexpected result: got error %v want %v", gotErr, nil)
 	assert.Equal(t, count, gotCount, "GetActiveConnectionsCount returned unexpected result: got count %v want %v", gotCount, count)
+
+	cr.AssertExpectations(t)
 }
 
 func TestGetActiveUsersCountSuccess(t *testing.T) {
-	ctx := context.TODO()
+	ctx := context.Background()
 	cr := new(mocks.ConnectionsRepository)
 	clients := []string{"1-user", "2-user2"}
 	cr.On("ConnectedClients", ctx).Return(clients, nil)
@@ -33,4 +35,6 @@ func TestGetActiveUsersCountSuccess(t *testing.T) {
 
 	assert.Nil(t, gotErr, "GetActiveUsers returned unexpected result: got error %v want %v", gotErr, nil)
 	assert.Equal(t, clients, gotClients, "GetActiveUsers returned unexpected result: got clients %v want %v", gotClients, clients)
+
+	cr.AssertExpectations(t)
 }
