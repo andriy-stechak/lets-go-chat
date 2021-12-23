@@ -12,6 +12,7 @@ import (
 	"github.com/andriystech/lgc/models"
 	"github.com/andriystech/lgc/services"
 	"github.com/gorilla/websocket"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -24,7 +25,6 @@ func TestNewConnectionSuccess(t *testing.T) {
 
 	ts.On("GetUserByToken", mock.Anything, fakeToken).Return(&models.User{UserName: "foo"}, nil)
 	cr.On("AddConnection", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	cr.On("DeleteConnection", mock.Anything, mock.Anything).Return(nil)
 
 	testServer := httptest.NewServer(http.HandlerFunc(wsHandler))
 	defer testServer.Close()
@@ -32,22 +32,34 @@ func TestNewConnectionSuccess(t *testing.T) {
 	url := fmt.Sprintf("ws%s?token=%s", strings.TrimPrefix(testServer.URL, "http"), fakeToken)
 
 	ws, _, err := websocket.DefaultDialer.Dial(url, nil)
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
+	assert.Nil(t, err, "%v", err)
 	defer ws.Close()
+	cr.AssertExpectations(t)
+	ts.AssertExpectations(t)
 
-	for i := 0; i < 5; i++ {
-		if err := ws.WriteMessage(websocket.TextMessage, []byte("hello")); err != nil {
-			t.Fatalf("%v", err)
-		}
+	type testDataCond struct {
+		input    []byte
+		expected string
+	}
+	testData := []testDataCond{
+		{
+			input:    []byte("hello"),
+			expected: "hello",
+		},
+		{
+			input:    []byte("world"),
+			expected: "world",
+		},
+	}
+
+	for _, testCond := range testData {
+		err := ws.WriteMessage(websocket.TextMessage, testCond.input)
+		assert.Nil(t, err, "%v", err)
+
 		_, p, err := ws.ReadMessage()
-		if err != nil {
-			t.Fatalf("%v", err)
-		}
-		if string(p) != "hello" {
-			t.Fatalf("bad message")
-		}
+		assert.Nil(t, err, "%v", err)
+		got := string(p)
+		assert.Equal(t, testCond.expected, got, "bad message got %s want %s", got, testCond.expected)
 	}
 }
 
@@ -59,24 +71,17 @@ func TestNewConnectionMissingToken(t *testing.T) {
 	wsHandler := WSConnectHandler(wsvc, ts)
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.Nil(t, err, "%v", err)
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(wsHandler)
 	handler.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusBadRequest {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusBadRequest)
-	}
-
+	assert.Equal(t, http.StatusBadRequest, rr.Code, "handler returned wrong status code: got %v want %v", rr.Code, http.StatusBadRequest)
 	expected := fmt.Sprintf(`{"status":%d,"message":"Query parameter 'token' is missing"}`, http.StatusBadRequest)
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v",
-			rr.Body.String(), expected)
-	}
+	assert.Equal(t, expected, rr.Body.String(), "handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	cr.AssertExpectations(t)
+	ts.AssertExpectations(t)
 }
 
 func TestNewConnectionInvalidToken(t *testing.T) {
@@ -90,24 +95,17 @@ func TestNewConnectionInvalidToken(t *testing.T) {
 	wsHandler := WSConnectHandler(wsvc, ts)
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.Nil(t, err, "%v", err)
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(wsHandler)
 	handler.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusForbidden {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusForbidden)
-	}
-
+	assert.Equal(t, http.StatusForbidden, rr.Code, "handler returned wrong status code: got %v want %v", rr.Code, http.StatusForbidden)
 	expected := fmt.Sprintf(`{"status":%d,"message":"%s"}`, http.StatusForbidden, wantErr.Error())
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v",
-			rr.Body.String(), expected)
-	}
+	assert.Equal(t, expected, rr.Body.String(), "handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	cr.AssertExpectations(t)
+	ts.AssertExpectations(t)
 }
 
 func TestNewConnectionUnableToOpenWSConnection(t *testing.T) {
@@ -121,22 +119,15 @@ func TestNewConnectionUnableToOpenWSConnection(t *testing.T) {
 	wsHandler := WSConnectHandler(wsvc, ts)
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.Nil(t, err, "%v", err)
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(wsHandler)
 	handler.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusInternalServerError {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusInternalServerError)
-	}
-
+	assert.Equal(t, http.StatusInternalServerError, rr.Code, "handler returned wrong status code: got %v want %v", rr.Code, http.StatusInternalServerError)
 	expected := fmt.Sprintf(`{"status":%d,"message":"%s"}`, http.StatusInternalServerError, wantErr.Error())
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v",
-			rr.Body.String(), expected)
-	}
+	assert.Equal(t, expected, rr.Body.String(), "handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	wsvc.AssertExpectations(t)
+	ts.AssertExpectations(t)
 }

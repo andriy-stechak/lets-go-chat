@@ -9,7 +9,7 @@ import (
 	"github.com/andriystech/lgc/api/middlewares"
 	"github.com/andriystech/lgc/config"
 	"github.com/andriystech/lgc/db/repositories"
-	"github.com/andriystech/lgc/helpers/mongo"
+	"github.com/andriystech/lgc/facilities/mongo"
 	"github.com/andriystech/lgc/services"
 	"github.com/gorilla/mux"
 )

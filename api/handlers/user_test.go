@@ -11,6 +11,7 @@ import (
 
 	"github.com/andriystech/lgc/db/repositories"
 	"github.com/andriystech/lgc/models"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -24,24 +25,16 @@ func TestRegisterUserHandlerSuccess(t *testing.T) {
 
 	payload := fmt.Sprintf(`{"userName":"%s","password":"%s"}`, usr.UserName, usr.Password)
 	req, err := http.NewRequest(http.MethodPost, "user", strings.NewReader(payload))
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.Nil(t, err, "%v", err)
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(registerHandler)
 	handler.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusCreated {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusCreated)
-	}
-
-	expected := fmt.Sprintf(`{"id":"%s","userName":"%s"}`, usrId, usr.UserName)
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v",
-			rr.Body.String(), expected)
-	}
+	assert.Equal(t, http.StatusCreated, rr.Code, "handler returned wrong status code: got %v want %v", rr.Code, http.StatusCreated)
+	expectedBody := fmt.Sprintf(`{"id":"%s","userName":"%s"}`, usrId, usr.UserName)
+	assert.Equal(t, expectedBody, rr.Body.String(), "handler returned unexpected body: got %v want %v", rr.Body.String(), expectedBody)
+	us.AssertExpectations(t)
 }
 
 func TestRegisterUserHandlerInvalidJson(t *testing.T) {
@@ -51,24 +44,16 @@ func TestRegisterUserHandlerInvalidJson(t *testing.T) {
 
 	payload := fmt.Sprintf(`{"userName":"%s,"password":"%s"}`, usr.UserName, usr.Password)
 	req, err := http.NewRequest(http.MethodPost, "user", strings.NewReader(payload))
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.Nil(t, err, "%v", err)
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(registerHandler)
 	handler.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusBadRequest {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusBadRequest)
-	}
-
-	expected := fmt.Sprintf(`{"status":%d,"message":"invalid character 'p' after object key:value pair"}`, http.StatusBadRequest)
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v",
-			rr.Body.String(), expected)
-	}
+	assert.Equal(t, http.StatusBadRequest, rr.Code, "handler returned wrong status code: got %v want %v", rr.Code, http.StatusBadRequest)
+	expectedBody := fmt.Sprintf(`{"status":%d,"message":"invalid character 'p' after object key:value pair"}`, http.StatusBadRequest)
+	assert.Equal(t, expectedBody, rr.Body.String(), "handler returned unexpected body: got %v want %v", rr.Body.String(), expectedBody)
+	us.AssertExpectations(t)
 }
 
 func TestRegisterUserHandlerInvalidRegData(t *testing.T) {
@@ -104,23 +89,15 @@ func TestRegisterUserHandlerInvalidRegData(t *testing.T) {
 
 		payload := fmt.Sprintf(`{"userName":"%s","password":"%s"}`, usr.UserName, usr.Password)
 		req, err := http.NewRequest(http.MethodPost, "user", strings.NewReader(payload))
-		if err != nil {
-			t.Fatal(err)
-		}
+		assert.Nil(t, err, "%v", err)
 
 		rr := httptest.NewRecorder()
 		handler := http.HandlerFunc(registerHandler)
 		handler.ServeHTTP(rr, req)
 
-		if status := rr.Code; status != http.StatusBadRequest {
-			t.Errorf("handler returned wrong status code: got %v want %v",
-				status, http.StatusBadRequest)
-		}
-
-		if rr.Body.String() != testCond.expectedPayload {
-			t.Errorf("handler returned unexpected body: got %v want %v",
-				rr.Body.String(), testCond.expectedPayload)
-		}
+		assert.Equal(t, testCond.expectedPayload, rr.Body.String(), "handler returned unexpected body: got %v want %v", rr.Body.String(), testCond.expectedPayload)
+		assert.Equal(t, http.StatusBadRequest, rr.Code, "handler returned wrong status code: got %v want %v", rr.Code, http.StatusBadRequest)
+		us.AssertExpectations(t)
 	}
 }
 
@@ -133,24 +110,16 @@ func TestRegisterUserHandlerNewUserFailure(t *testing.T) {
 
 	payload := fmt.Sprintf(`{"userName":"%s","password":"%s"}`, usr.UserName, usr.Password)
 	req, err := http.NewRequest(http.MethodPost, "user", strings.NewReader(payload))
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.Nil(t, err, "%v", err)
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(registerHandler)
 	handler.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusInternalServerError {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusInternalServerError)
-	}
-
+	assert.Equal(t, http.StatusInternalServerError, rr.Code, "handler returned wrong status code: got %v want %v", rr.Code, http.StatusInternalServerError)
 	expected := fmt.Sprintf(`{"status":%d,"message":"%s"}`, http.StatusInternalServerError, wantErr.Error())
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v",
-			rr.Body.String(), expected)
-	}
+	assert.Equal(t, expected, rr.Body.String(), "handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	us.AssertExpectations(t)
 }
 
 func TestRegisterUserHandlerDuplicate(t *testing.T) {
@@ -163,24 +132,16 @@ func TestRegisterUserHandlerDuplicate(t *testing.T) {
 
 	payload := fmt.Sprintf(`{"userName":"%s","password":"%s"}`, usr.UserName, usr.Password)
 	req, err := http.NewRequest(http.MethodPost, "user", strings.NewReader(payload))
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.Nil(t, err, "%v", err)
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(registerHandler)
 	handler.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusConflict {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusConflict)
-	}
-
+	assert.Equal(t, http.StatusConflict, rr.Code, "handler returned wrong status code: got %v want %v", rr.Code, http.StatusConflict)
 	expected := fmt.Sprintf(`{"status":%d,"message":"%s"}`, http.StatusConflict, wantErr.Error())
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v",
-			rr.Body.String(), expected)
-	}
+	assert.Equal(t, expected, rr.Body.String(), "handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	us.AssertExpectations(t)
 }
 
 func TestRegisterUserHandlerUnknown(t *testing.T) {
@@ -193,24 +154,16 @@ func TestRegisterUserHandlerUnknown(t *testing.T) {
 
 	payload := fmt.Sprintf(`{"userName":"%s","password":"%s"}`, usr.UserName, usr.Password)
 	req, err := http.NewRequest(http.MethodPost, "user", strings.NewReader(payload))
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.Nil(t, err, "%v", err)
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(registerHandler)
 	handler.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusInternalServerError {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusInternalServerError)
-	}
-
+	assert.Equal(t, http.StatusInternalServerError, rr.Code, "handler returned wrong status code: got %v want %v", rr.Code, http.StatusInternalServerError)
 	expected := fmt.Sprintf(`{"status":%d,"message":"%s"}`, http.StatusInternalServerError, wantErr.Error())
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v",
-			rr.Body.String(), expected)
-	}
+	assert.Equal(t, expected, rr.Body.String(), "handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	us.AssertExpectations(t)
 }
 
 func TestLogInUserHandlerSuccess(t *testing.T) {
@@ -225,24 +178,16 @@ func TestLogInUserHandlerSuccess(t *testing.T) {
 
 	payload := fmt.Sprintf(`{"userName":"%s","password":"%s"}`, usr.UserName, "qwerty123456")
 	req, err := http.NewRequest(http.MethodPost, "user/login", strings.NewReader(payload))
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.Nil(t, err, "%v", err)
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(logInHandler)
 	handler.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusCreated {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusCreated)
-	}
-
+	assert.Equal(t, http.StatusCreated, rr.Code, "handler returned wrong status code: got %v want %v", rr.Code, http.StatusCreated)
 	expected := fmt.Sprintf(`{"url":"ws://%s/chat/ws.rtm.start?token=%s"}`, req.Host, fakeToken)
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v",
-			rr.Body.String(), expected)
-	}
+	assert.Equal(t, expected, rr.Body.String(), "handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	us.AssertExpectations(t)
 }
 
 func TestLogInUserHandlerInvalidJson(t *testing.T) {
@@ -253,24 +198,17 @@ func TestLogInUserHandlerInvalidJson(t *testing.T) {
 
 	payload := fmt.Sprintf(`{"userName:"%s","password":"%s"}`, "foobar", "qwerty123456")
 	req, err := http.NewRequest(http.MethodPost, "user/login", strings.NewReader(payload))
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.Nil(t, err, "%v", err)
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(logInHandler)
 	handler.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusBadRequest {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusBadRequest)
-	}
-
+	assert.Equal(t, http.StatusBadRequest, rr.Code, "handler returned wrong status code: got %v want %v", rr.Code, http.StatusBadRequest)
 	expected := fmt.Sprintf(`{"status":%d,"message":"invalid character 'f' after object key"}`, http.StatusBadRequest)
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v",
-			rr.Body.String(), expected)
-	}
+	assert.Equal(t, expected, rr.Body.String(), "handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	us.AssertExpectations(t)
+	ts.AssertExpectations(t)
 }
 
 func TestLogInUserHandlerMissingArguments(t *testing.T) {
@@ -298,121 +236,87 @@ func TestLogInUserHandlerMissingArguments(t *testing.T) {
 
 		payload := fmt.Sprintf(`{"userName":"%s","password":"%s"}`, testCond.userName, testCond.userPassword)
 		req, err := http.NewRequest(http.MethodPost, "user/login", strings.NewReader(payload))
-		if err != nil {
-			t.Fatal(err)
-		}
+		assert.Nil(t, err, "%v", err)
 
 		rr := httptest.NewRecorder()
 		handler := http.HandlerFunc(logInHandler)
 		handler.ServeHTTP(rr, req)
 
-		if status := rr.Code; status != http.StatusBadRequest {
-			t.Errorf("handler returned wrong status code: got %v want %v",
-				status, http.StatusBadRequest)
-		}
-
-		if rr.Body.String() != testCond.expectedPayload {
-			t.Errorf("handler returned unexpected body: got %v want %v",
-				rr.Body.String(), testCond.expectedPayload)
-		}
+		assert.Equal(t, http.StatusBadRequest, rr.Code, "handler returned wrong status code: got %v want %v", rr.Code, http.StatusBadRequest)
+		assert.Equal(t, testCond.expectedPayload, rr.Body.String(), "handler returned unexpected body: got %v want %v", rr.Body.String(), testCond.expectedPayload)
+		us.AssertExpectations(t)
+		ts.AssertExpectations(t)
 	}
 }
 
 func TestLogInUserHandlerUserNotFound(t *testing.T) {
-	fakeToken := "0e903bae-be98-47f3-8d49-e8d950442238"
 	us := new(mocks.UserService)
 	ts := new(mocks.TokenService)
 	usr := &models.User{UserName: "foobar"}
 	us.On("FindUserByName", mock.Anything, usr.UserName).Return(nil, repositories.ErrUserNotFound)
-	ts.On("GenerateToken", mock.Anything, usr).Return(&models.Token{Payload: fakeToken}, nil)
 
 	logInHandler := LogInUserHandler(us, ts)
 
 	payload := fmt.Sprintf(`{"userName":"%s","password":"%s"}`, usr.UserName, "qwerty123456")
 	req, err := http.NewRequest(http.MethodPost, "user/login", strings.NewReader(payload))
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.Nil(t, err, "%v", err)
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(logInHandler)
 	handler.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusUnauthorized {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusUnauthorized)
-	}
-
+	assert.Equal(t, http.StatusUnauthorized, rr.Code, "handler returned wrong status code: got %v want %v", rr.Code, http.StatusUnauthorized)
 	expected := fmt.Sprintf(`{"status":%d,"message":"Unable to log in user. Reason: Invalid creds"}`, http.StatusUnauthorized)
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v",
-			rr.Body.String(), expected)
-	}
+	assert.Equal(t, expected, rr.Body.String(), "handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	us.AssertExpectations(t)
+	ts.AssertExpectations(t)
 }
 
 func TestLogInUserHandlerInvalidCreds(t *testing.T) {
-	fakeToken := "0e903bae-be98-47f3-8d49-e8d950442238"
 	us := new(mocks.UserService)
 	ts := new(mocks.TokenService)
 	usr := &models.User{UserName: "foobar", Password: "e0b50e"}
 	us.On("FindUserByName", mock.Anything, usr.UserName).Return(usr, nil)
-	ts.On("GenerateToken", mock.Anything, usr).Return(&models.Token{Payload: fakeToken}, nil)
 
 	logInHandler := LogInUserHandler(us, ts)
 
 	payload := fmt.Sprintf(`{"userName":"%s","password":"%s"}`, usr.UserName, "qwerty123456")
 	req, err := http.NewRequest(http.MethodPost, "user/login", strings.NewReader(payload))
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.Nil(t, err, "%v", err)
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(logInHandler)
 	handler.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusUnauthorized {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusUnauthorized)
-	}
-
+	assert.Equal(t, http.StatusUnauthorized, rr.Code, "handler returned wrong status code: got %v want %v", rr.Code, http.StatusUnauthorized)
 	expected := fmt.Sprintf(`{"status":%d,"message":"Unable to log in user. Reason: Invalid creds"}`, http.StatusUnauthorized)
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v",
-			rr.Body.String(), expected)
-	}
+	assert.Equal(t, expected, rr.Body.String(), "handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	us.AssertExpectations(t)
+	ts.AssertExpectations(t)
 }
 
 func TestLogInUserHandlerUnableToFindUser(t *testing.T) {
 	wantErr := errors.New("Some error")
-	fakeToken := "0e903bae-be98-47f3-8d49-e8d950442238"
 	us := new(mocks.UserService)
 	ts := new(mocks.TokenService)
 	usr := &models.User{UserName: "foobar"}
 	us.On("FindUserByName", mock.Anything, usr.UserName).Return(nil, wantErr)
-	ts.On("GenerateToken", mock.Anything, usr).Return(&models.Token{Payload: fakeToken}, nil)
 
 	logInHandler := LogInUserHandler(us, ts)
 
 	payload := fmt.Sprintf(`{"userName":"%s","password":"%s"}`, usr.UserName, "qwerty123456")
 	req, err := http.NewRequest(http.MethodPost, "user/login", strings.NewReader(payload))
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.Nil(t, err, "%v", err)
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(logInHandler)
 	handler.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusInternalServerError {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusInternalServerError)
-	}
-
+	assert.Equal(t, http.StatusInternalServerError, rr.Code, "handler returned wrong status code: got %v want %v", rr.Code, http.StatusInternalServerError)
 	expected := fmt.Sprintf(`{"status":%d,"message":"%s"}`, http.StatusInternalServerError, wantErr.Error())
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v",
-			rr.Body.String(), expected)
-	}
+	assert.Equal(t, expected, rr.Body.String(), "handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	us.AssertExpectations(t)
+	ts.AssertExpectations(t)
 }
 
 func TestLogInUserHandlerUnableToGenerateToken(t *testing.T) {
@@ -427,24 +331,17 @@ func TestLogInUserHandlerUnableToGenerateToken(t *testing.T) {
 
 	payload := fmt.Sprintf(`{"userName":"%s","password":"%s"}`, usr.UserName, "qwerty123456")
 	req, err := http.NewRequest(http.MethodPost, "user/login", strings.NewReader(payload))
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.Nil(t, err, "%v", err)
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(logInHandler)
 	handler.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusInternalServerError {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusInternalServerError)
-	}
-
+	assert.Equal(t, http.StatusInternalServerError, rr.Code, "handler returned wrong status code: got %v want %v", rr.Code, http.StatusInternalServerError)
 	expected := fmt.Sprintf(`{"status":%d,"message":"%s"}`, http.StatusInternalServerError, wantErr.Error())
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v",
-			rr.Body.String(), expected)
-	}
+	assert.Equal(t, expected, rr.Body.String(), "handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	us.AssertExpectations(t)
+	ts.AssertExpectations(t)
 }
 
 func TestActiveConnectionsCountHandlerSuccess(t *testing.T) {
@@ -453,24 +350,16 @@ func TestActiveConnectionsCountHandlerSuccess(t *testing.T) {
 	wssvc.On("GetActiveConnectionsCount", mock.Anything).Return(wantCount, nil)
 
 	req, err := http.NewRequest(http.MethodGet, "user/active/count", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.Nil(t, err, "%v", err)
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(ActiveConnectionsCountHandler(wssvc))
 	handler.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
-
+	assert.Equal(t, http.StatusOK, rr.Code, "handler returned wrong status code: got %v want %v", rr.Code, http.StatusOK)
 	expected := fmt.Sprintf(`{"count":%d}`, wantCount)
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v",
-			rr.Body.String(), expected)
-	}
+	assert.Equal(t, expected, rr.Body.String(), "handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	wssvc.AssertExpectations(t)
 }
 
 func TestActiveConnectionsCountHandlerFail(t *testing.T) {
@@ -479,24 +368,16 @@ func TestActiveConnectionsCountHandlerFail(t *testing.T) {
 	wssvc.On("GetActiveConnectionsCount", mock.Anything).Return(0, wantErr)
 
 	req, err := http.NewRequest(http.MethodGet, "user/active/count", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.Nil(t, err, "%v", err)
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(ActiveConnectionsCountHandler(wssvc))
 	handler.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusInternalServerError {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusInternalServerError)
-	}
-
+	assert.Equal(t, http.StatusInternalServerError, rr.Code, "handler returned wrong status code: got %v want %v", rr.Code, http.StatusInternalServerError)
 	expected := fmt.Sprintf(`{"status":%d,"message":"%s"}`, http.StatusInternalServerError, wantErr.Error())
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v",
-			rr.Body.String(), expected)
-	}
+	assert.Equal(t, expected, rr.Body.String(), "handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	wssvc.AssertExpectations(t)
 }
 
 func TestActiveUsersHandlerSuccess(t *testing.T) {
@@ -505,24 +386,16 @@ func TestActiveUsersHandlerSuccess(t *testing.T) {
 	wssvc.On("GetActiveUsers", mock.Anything).Return(wantUsers, nil)
 
 	req, err := http.NewRequest(http.MethodGet, "user/active", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.Nil(t, err, "%v", err)
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(ActiveUsersHandler(wssvc))
 	handler.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
-	}
-
+	assert.Equal(t, http.StatusOK, rr.Code, "handler returned wrong status code: got %v want %v", rr.Code, http.StatusOK)
 	expected := fmt.Sprintf(`{"users":["%s"]}`, wantUsers[0])
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v",
-			rr.Body.String(), expected)
-	}
+	assert.Equal(t, expected, rr.Body.String(), "handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	wssvc.AssertExpectations(t)
 }
 
 func TestActiveUsersHandlerFail(t *testing.T) {
@@ -531,22 +404,14 @@ func TestActiveUsersHandlerFail(t *testing.T) {
 	wssvc.On("GetActiveUsers", mock.Anything).Return(nil, wantErr)
 
 	req, err := http.NewRequest(http.MethodGet, "user/active", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.Nil(t, err, "%v", err)
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(ActiveUsersHandler(wssvc))
 	handler.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusInternalServerError {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusInternalServerError)
-	}
-
+	assert.Equal(t, http.StatusInternalServerError, rr.Code, "handler returned wrong status code: got %v want %v", rr.Code, http.StatusInternalServerError)
 	expected := fmt.Sprintf(`{"status":%d,"message":"%s"}`, http.StatusInternalServerError, wantErr.Error())
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %v want %v",
-			rr.Body.String(), expected)
-	}
+	assert.Equal(t, expected, rr.Body.String(), "handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	wssvc.AssertExpectations(t)
 }

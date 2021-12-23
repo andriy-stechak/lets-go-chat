@@ -9,45 +9,74 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAddConnectionSuccess(t *testing.T) {
-	ctx := context.TODO()
+func TestAddConnection(t *testing.T) {
+	type testData struct {
+		want   error
+		connId string
+	}
+
+	testConditions := []testData{
+		{
+			connId: "someid",
+			want:   nil,
+		},
+		{
+			connId: "someid",
+			want:   ErrConnIdConflict,
+		},
+		{
+			connId: "someid2",
+			want:   nil,
+		},
+	}
+	ctx := context.Background()
 	repo := NewConnectionsRepository()
-	if got := repo.AddConnection(ctx, "someid", &websocket.Conn{}, &models.User{}); got != nil {
-		t.Errorf("AddConnection returned unexpected result: got %v want %v", got, nil)
+
+	for _, testCond := range testConditions {
+		got := repo.AddConnection(ctx, testCond.connId, &websocket.Conn{}, &models.User{})
+
+		assert.Equal(t, testCond.want, got, "AddConnection returned unexpected result: got %v want %v", got, testCond.want)
 	}
 }
 
-func TestAddConnectionDuplicate(t *testing.T) {
-	ctx := context.TODO()
+func TestDeleteConnection(t *testing.T) {
+	type testData struct {
+		want        error
+		connIdToAdd string
+		connIdToDel string
+	}
+
+	testConditions := []testData{
+		{
+			connIdToAdd: "someid",
+			connIdToDel: "someid",
+			want:        nil,
+		},
+		{
+			connIdToAdd: "someid2",
+			connIdToDel: "someid3",
+			want:        ErrConnNotFound,
+		},
+		{
+			connIdToAdd: "someid",
+			connIdToDel: "someid2",
+			want:        nil,
+		},
+	}
+	ctx := context.Background()
 	repo := NewConnectionsRepository()
-	repo.AddConnection(ctx, "someid", &websocket.Conn{}, &models.User{})
 
-	gotErr := repo.AddConnection(ctx, "someid", &websocket.Conn{}, &models.User{})
+	for _, testCond := range testConditions {
+		repo.AddConnection(ctx, testCond.connIdToAdd, &websocket.Conn{}, &models.User{})
 
-	assert.Equal(t, ErrConnIdConflict, gotErr, "AddConnection returned unexpected result: got %v want %v", gotErr, ErrConnIdConflict)
-}
+		got := repo.DeleteConnection(ctx, testCond.connIdToDel)
 
-func TestDeleteConnectionSuccess(t *testing.T) {
-	ctx := context.TODO()
-	repo := NewConnectionsRepository()
-	repo.AddConnection(ctx, "someid", &websocket.Conn{}, &models.User{})
-
-	gotErr := repo.DeleteConnection(ctx, "someid")
-
-	assert.Nil(t, gotErr, "DeleteConnection returned unexpected result: got %v want %v", gotErr, nil)
-}
-
-func TestDeleteConnectionNotFound(t *testing.T) {
-	ctx := context.TODO()
-	repo := NewConnectionsRepository()
-
-	gotErr := repo.DeleteConnection(ctx, "someid")
-
-	assert.Equal(t, ErrConnNotFound, gotErr, "DeleteConnection returned unexpected result: got %v want %v", gotErr, ErrConnNotFound)
+		assert.Equal(t, testCond.want, got, "DeleteConnection returned unexpected result: got %v want %v", got, testCond.want)
+	}
 }
 
 func TestCountConnectionsSuccess(t *testing.T) {
-	ctx := context.TODO()
+	ctx := context.Background()
 	repo := NewConnectionsRepository()
 	repo.AddConnection(ctx, "someid", &websocket.Conn{}, &models.User{})
 
@@ -58,7 +87,7 @@ func TestCountConnectionsSuccess(t *testing.T) {
 }
 
 func TestConnectedClientsSuccess(t *testing.T) {
-	ctx := context.TODO()
+	ctx := context.Background()
 	repo := NewConnectionsRepository()
 	repo.AddConnection(ctx, "someid", &websocket.Conn{}, &models.User{
 		Id:       "someid",

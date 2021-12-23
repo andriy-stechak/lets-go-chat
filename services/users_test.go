@@ -19,7 +19,7 @@ func TestNewUserSuccess(t *testing.T) {
 }
 
 func TestFindUserByNameSuccess(t *testing.T) {
-	ctx := context.TODO()
+	ctx := context.Background()
 	ur := new(mocks.UsersRepository)
 	usr := &models.User{UserName: "foo"}
 	ur.On("FindUserByName", ctx, "foo").Return(usr, nil)
@@ -29,11 +29,13 @@ func TestFindUserByNameSuccess(t *testing.T) {
 
 	assert.Nil(t, gotErr, "GenerateToken returned unexpected result: got error %v want %v", gotErr, nil)
 	assert.Equal(t, usr, gotUsr, "GenerateToken returned unexpected result: got user %v want %v", gotUsr, usr)
+
+	ur.AssertExpectations(t)
 }
 
 func TestSaveUserSuccess(t *testing.T) {
 	wantId := "1"
-	ctx := context.TODO()
+	ctx := context.Background()
 	ur := new(mocks.UsersRepository)
 	usr := &models.User{UserName: "foo"}
 	ur.On("SaveUser", ctx, usr).Return(wantId, nil)
@@ -43,4 +45,6 @@ func TestSaveUserSuccess(t *testing.T) {
 
 	assert.Nil(t, gotErr, "SaveUser returned unexpected result: got error %v want %v", gotErr, nil)
 	assert.Equal(t, wantId, gotUsrId, "SaveUser returned unexpected result: got user %v want %v", gotUsrId, wantId)
+
+	ur.AssertExpectations(t)
 }

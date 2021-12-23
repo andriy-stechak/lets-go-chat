@@ -6,7 +6,7 @@ import (
 
 	"github.com/andriystech/lgc/api/server"
 	"github.com/andriystech/lgc/config"
-	"github.com/andriystech/lgc/helpers/mongo"
+	"github.com/andriystech/lgc/facilities/mongo"
 )
 
 func main() {
