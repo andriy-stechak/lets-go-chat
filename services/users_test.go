@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewUserSuccess(t *testing.T) {
+func TestNewUser(t *testing.T) {
 	ur := new(mocks.UsersRepository)
 	svc := NewUserService(ur)
 
@@ -18,7 +18,7 @@ func TestNewUserSuccess(t *testing.T) {
 	assert.Nil(t, gotErr, "NewUser returned unexpected result: got error %v want %v", gotErr, nil)
 }
 
-func TestFindUserByNameSuccess(t *testing.T) {
+func TestFindUserByName(t *testing.T) {
 	ctx := context.Background()
 	ur := new(mocks.UsersRepository)
 	usr := &models.User{UserName: "foo"}
@@ -33,7 +33,7 @@ func TestFindUserByNameSuccess(t *testing.T) {
 	ur.AssertExpectations(t)
 }
 
-func TestSaveUserSuccess(t *testing.T) {
+func TestSaveUser(t *testing.T) {
 	wantId := "1"
 	ctx := context.Background()
 	ur := new(mocks.UsersRepository)

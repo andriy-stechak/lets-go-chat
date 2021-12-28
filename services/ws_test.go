@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetActiveConnectionsCountSuccess(t *testing.T) {
+func TestGetActiveConnectionsCount(t *testing.T) {
 	ctx := context.Background()
 	cr := new(mocks.ConnectionsRepository)
 	count := 1
@@ -24,7 +24,7 @@ func TestGetActiveConnectionsCountSuccess(t *testing.T) {
 	cr.AssertExpectations(t)
 }
 
-func TestGetActiveUsersCountSuccess(t *testing.T) {
+func TestGetActiveUsers(t *testing.T) {
 	ctx := context.Background()
 	cr := new(mocks.ConnectionsRepository)
 	clients := []string{"1-user", "2-user2"}

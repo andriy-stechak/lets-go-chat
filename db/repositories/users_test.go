@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/andriystech/lgc/facilities/mongo"
@@ -11,61 +12,69 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSaveUserSuccess(t *testing.T) {
-	ctx := context.Background()
-	usr := &models.User{UserName: "foo"}
-	c := new(mocks.CollectionHelper)
-	srh := new(mocks.SingleResultHelper)
-	c.On("FindOne", ctx, map[string]string{"userName": usr.UserName}).Return(srh, nil)
-	c.On("InsertOne", ctx, usr).Return("1", nil)
-	srh.On("Decode", &models.User{}).Return(ErrUserNotFound)
-	repo := NewUsersRepository(c)
-
-	gotId, gotErr := repo.SaveUser(ctx, usr)
-
-	assert.Nil(t, gotErr, "SaveUser returned unexpected result: got error %v", gotErr)
-	assert.Equal(t, "1", gotId, "SaveUser returned unexpected result: got %v want 1", gotId)
-
-	c.AssertExpectations(t)
-	srh.AssertExpectations(t)
+type testSaveUsersData struct {
+	usr          *models.User
+	wantId       string
+	wantErr      error
+	prepareMocks func(*mocks.CollectionHelper, *mocks.SingleResultHelper)
 }
 
-func TestSaveUserAlreadyExist(t *testing.T) {
-	ctx := context.Background()
-	usr := &models.User{UserName: "foo"}
-	c := new(mocks.CollectionHelper)
-	srh := new(mocks.SingleResultHelper)
-	c.On("FindOne", ctx, map[string]string{"userName": usr.UserName}).Return(srh, nil)
-	srh.On("Decode", &models.User{}).Return(nil)
-	repo := NewUsersRepository(c)
+func TestSaveUser(t *testing.T) {
+	fakeUsr := &models.User{UserName: "foo"}
+	unknownErr := errors.New("Unable to save")
+	testConditions := []testSaveUsersData{
+		{
+			usr:     fakeUsr,
+			wantId:  "1",
+			wantErr: nil,
+			prepareMocks: func(ch *mocks.CollectionHelper, srh *mocks.SingleResultHelper) {
+				ctx := context.Background()
+				ch.On("FindOne", ctx, map[string]string{"userName": fakeUsr.UserName}).Return(srh, nil)
+				ch.On("InsertOne", ctx, fakeUsr).Return("1", nil)
+				srh.On("Decode", &models.User{}).Return(ErrUserNotFound)
+			},
+		},
+		{
+			usr:     fakeUsr,
+			wantId:  "",
+			wantErr: ErrUserWithNameAlreadyExists,
+			prepareMocks: func(ch *mocks.CollectionHelper, srh *mocks.SingleResultHelper) {
+				ctx := context.Background()
+				ch.On("FindOne", ctx, map[string]string{"userName": fakeUsr.UserName}).Return(srh, nil)
+				srh.On("Decode", &models.User{}).Return(nil)
+			},
+		},
+		{
+			usr:     fakeUsr,
+			wantId:  "",
+			wantErr: unknownErr,
+			prepareMocks: func(ch *mocks.CollectionHelper, srh *mocks.SingleResultHelper) {
+				ctx := context.Background()
+				ch.On("FindOne", ctx, map[string]string{"userName": fakeUsr.UserName}).Return(srh, nil)
+				ch.On("InsertOne", ctx, fakeUsr).Return(nil, unknownErr)
+				srh.On("Decode", &models.User{}).Return(ErrUserNotFound)
+			},
+		},
+	}
 
-	gotId, gotErr := repo.SaveUser(ctx, usr)
+	for _, testCond := range testConditions {
+		tName := fmt.Sprintf("SaveUser(%v, %v) == %v, %v", context.Background(), testCond.usr, testCond.wantId, testCond.wantErr)
+		t.Run(tName, func(t *testing.T) {
+			ctx := context.Background()
+			ch := new(mocks.CollectionHelper)
+			srh := new(mocks.SingleResultHelper)
+			testCond.prepareMocks(ch, srh)
+			repo := NewUsersRepository(ch)
 
-	assert.Equal(t, "", gotId, "SaveUser returned unexpected result: got user id %v instead of %v", gotId, "")
-	assert.Equal(t, ErrUserWithNameAlreadyExists, gotErr, "SaveUser returned unexpected result: got success instead of %v", ErrUserWithNameAlreadyExists)
+			gotId, gotErr := repo.SaveUser(ctx, testCond.usr)
 
-	c.AssertExpectations(t)
-	srh.AssertExpectations(t)
-}
+			assert.Equal(t, testCond.wantErr, gotErr, "SaveUser returned unexpected result: got error %v want %v", gotErr, testCond.wantErr)
+			assert.Equal(t, testCond.wantId, gotId, "SaveUser returned unexpected result: got Id %v want %v", gotId, testCond.wantId)
 
-func TestSaveUserFailToInsert(t *testing.T) {
-	ctx := context.Background()
-	usr := &models.User{UserName: "foo"}
-	c := new(mocks.CollectionHelper)
-	srh := new(mocks.SingleResultHelper)
-	wantError := errors.New("Unable to save")
-	c.On("FindOne", ctx, map[string]string{"userName": usr.UserName}).Return(srh, nil)
-	c.On("InsertOne", ctx, usr).Return(nil, wantError)
-	srh.On("Decode", &models.User{}).Return(ErrUserNotFound)
-	repo := NewUsersRepository(c)
-
-	gotId, gotErr := repo.SaveUser(ctx, usr)
-
-	assert.Equal(t, "", gotId, "SaveUser returned unexpected result: got user id %v instead of %v", gotId, "")
-	assert.Equal(t, wantError, gotErr, "SaveUser returned unexpected result: got success instead of %v", ErrUserWithNameAlreadyExists)
-
-	c.AssertExpectations(t)
-	srh.AssertExpectations(t)
+			ch.AssertExpectations(t)
+			srh.AssertExpectations(t)
+		})
+	}
 }
 
 func TestFindUserByNameNoItems(t *testing.T) {

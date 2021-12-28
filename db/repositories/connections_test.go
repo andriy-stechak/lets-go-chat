@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/andriystech/lgc/models"
@@ -9,69 +10,69 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAddConnection(t *testing.T) {
-	type testData struct {
-		want   error
-		connId string
-	}
+type connTestData struct {
+	want        error
+	connId      string
+	prepareRepo func(ConnectionsRepository) ConnectionsRepository
+}
 
-	testConditions := []testData{
+func TestAddConnection(t *testing.T) {
+	testConditions := []connTestData{
 		{
 			connId: "someid",
 			want:   nil,
-		},
-		{
-			connId: "someid",
-			want:   ErrConnIdConflict,
+			prepareRepo: func(cr ConnectionsRepository) ConnectionsRepository {
+				return cr
+			},
 		},
 		{
 			connId: "someid2",
-			want:   nil,
+			want:   ErrConnIdConflict,
+			prepareRepo: func(cr ConnectionsRepository) ConnectionsRepository {
+				cr.AddConnection(context.Background(), "someid2", &websocket.Conn{}, &models.User{})
+				return cr
+			},
 		},
 	}
-	ctx := context.Background()
-	repo := NewConnectionsRepository()
 
 	for _, testCond := range testConditions {
-		got := repo.AddConnection(ctx, testCond.connId, &websocket.Conn{}, &models.User{})
+		t.Run(fmt.Sprintf("AddConnection(%v, %v) == %v", context.Background(), testCond.connId, testCond.want), func(t *testing.T) {
+			ctx := context.Background()
+			repo := testCond.prepareRepo(NewConnectionsRepository())
+			got := repo.AddConnection(ctx, testCond.connId, &websocket.Conn{}, &models.User{})
 
-		assert.Equal(t, testCond.want, got, "AddConnection returned unexpected result: got %v want %v", got, testCond.want)
+			assert.Equal(t, testCond.want, got, "AddConnection returned unexpected result: got %v want %v", got, testCond.want)
+		})
 	}
 }
 
 func TestDeleteConnection(t *testing.T) {
-	type testData struct {
-		want        error
-		connIdToAdd string
-		connIdToDel string
-	}
-
-	testConditions := []testData{
+	testConditions := []connTestData{
 		{
-			connIdToAdd: "someid",
-			connIdToDel: "someid",
-			want:        nil,
+			connId: "someid",
+			want:   ErrConnNotFound,
+			prepareRepo: func(cr ConnectionsRepository) ConnectionsRepository {
+				return cr
+			},
 		},
 		{
-			connIdToAdd: "someid2",
-			connIdToDel: "someid3",
-			want:        ErrConnNotFound,
-		},
-		{
-			connIdToAdd: "someid",
-			connIdToDel: "someid2",
-			want:        nil,
+			connId: "someid2",
+			want:   nil,
+			prepareRepo: func(cr ConnectionsRepository) ConnectionsRepository {
+				cr.AddConnection(context.Background(), "someid2", &websocket.Conn{}, &models.User{})
+				return cr
+			},
 		},
 	}
-	ctx := context.Background()
-	repo := NewConnectionsRepository()
 
 	for _, testCond := range testConditions {
-		repo.AddConnection(ctx, testCond.connIdToAdd, &websocket.Conn{}, &models.User{})
+		t.Run(fmt.Sprintf("DeleteConnection(%v) == %v", testCond.connId, testCond.want), func(t *testing.T) {
+			ctx := context.Background()
+			repo := testCond.prepareRepo(NewConnectionsRepository())
+			got := repo.DeleteConnection(ctx, testCond.connId)
 
-		got := repo.DeleteConnection(ctx, testCond.connIdToDel)
-
-		assert.Equal(t, testCond.want, got, "DeleteConnection returned unexpected result: got %v want %v", got, testCond.want)
+			assert.Equal(t, testCond.want, got, "DeleteConnection returned unexpected result: got %v want %v", got, testCond.want)
+		})
 	}
 }
 
