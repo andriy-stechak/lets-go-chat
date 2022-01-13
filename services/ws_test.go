@@ -81,7 +81,7 @@ func TestSendMessageToAllConnections(t *testing.T) {
 			tName:    "should fail with error when unable to save message",
 			payload:  "hello",
 			sender:   sender,
-			expected: errorUnableToSaveMessage,
+			expected: nil,
 			prepareMocks: func(cr *mocks.ConnectionsRepository, mr *mocks.MessagesRepository, ur *mocks.UsersRepository, wc *mocks.ConnHelper) {
 				cr.On("GetAllConnections", mock.Anything).Return(map[string]ws.ConnHelper{
 					sender.Id:    wc,
@@ -94,7 +94,7 @@ func TestSendMessageToAllConnections(t *testing.T) {
 			tName:    "should fail with error when unable to write message to socket",
 			payload:  "hello",
 			sender:   sender,
-			expected: errorUnableToSendMessage,
+			expected: nil,
 			prepareMocks: func(cr *mocks.ConnectionsRepository, mr *mocks.MessagesRepository, ur *mocks.UsersRepository, wc *mocks.ConnHelper) {
 				cr.On("GetAllConnections", mock.Anything).Return(map[string]ws.ConnHelper{
 					sender.Id:    wc,
