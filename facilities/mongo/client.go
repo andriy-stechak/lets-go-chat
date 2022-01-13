@@ -16,12 +16,17 @@ type DatabaseHelper interface {
 }
 
 type CollectionHelper interface {
+	Find(context.Context, interface{}) (MultiResultHelper, error)
 	FindOne(context.Context, interface{}) SingleResultHelper
 	InsertOne(context.Context, interface{}) (interface{}, error)
 }
 
 type SingleResultHelper interface {
 	Decode(v interface{}) error
+}
+
+type MultiResultHelper interface {
+	All(context.Context, interface{}) error
 }
 
 type ClientHelper interface {
@@ -42,6 +47,10 @@ type mongoCollection struct {
 
 type mongoSingleResult struct {
 	sr *mongo.SingleResult
+}
+
+type mongoMultiResult struct {
+	mc *mongo.Cursor
 }
 
 func NewClient(cnf *config.ServerConfig) (ClientHelper, error) {
@@ -74,6 +83,14 @@ func (md *mongoDatabase) Client() ClientHelper {
 	return &mongoClient{cl: client}
 }
 
+func (mc *mongoCollection) Find(ctx context.Context, filter interface{}) (MultiResultHelper, error) {
+	multiResult, err := mc.coll.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	return &mongoMultiResult{mc: multiResult}, nil
+}
+
 func (mc *mongoCollection) FindOne(ctx context.Context, filter interface{}) SingleResultHelper {
 	singleResult := mc.coll.FindOne(ctx, filter)
 	return &mongoSingleResult{sr: singleResult}
@@ -86,4 +103,8 @@ func (mc *mongoCollection) InsertOne(ctx context.Context, document interface{}) 
 
 func (sr *mongoSingleResult) Decode(v interface{}) error {
 	return sr.sr.Decode(v)
+}
+
+func (mr *mongoMultiResult) All(ctx context.Context, v interface{}) error {
+	return mr.mc.All(ctx, v)
 }

@@ -10,22 +10,26 @@ import (
 	"github.com/andriystech/lgc/config"
 	"github.com/andriystech/lgc/db/repositories"
 	"github.com/andriystech/lgc/facilities/mongo"
+	"github.com/andriystech/lgc/facilities/ws"
 	"github.com/andriystech/lgc/services"
 	"github.com/gorilla/mux"
 )
 
 func Run(db mongo.ClientHelper) {
 	serverConfig := config.GetServerConfig()
+	wsUpgrader := ws.NewUpgrader(serverConfig.WsReadBuffer, serverConfig.WsWriteBuffer)
 	router := mux.NewRouter()
 	router.Use(middlewares.LogHttpCalls(os.Stdout))
 	router.Use(middlewares.PanicAndRecover)
 	usersCollection := db.Database(serverConfig.DbName).Collection("users")
 	usersRepository := repositories.NewUsersRepository(usersCollection)
+	messagesCollection := db.Database(serverConfig.DbName).Collection("messages")
+	messagesRepository := repositories.NewMessagesRepository(messagesCollection)
 	tokensRepository := repositories.NewTokensRepository(serverConfig.TokenTTLInSeconds)
 	connectionsRepository := repositories.NewConnectionsRepository()
 	usersService := services.NewUserService(usersRepository)
 	tokensService := services.NewTokenService(tokensRepository)
-	wsService := services.NewWebSocketService(connectionsRepository, services.NewUpdater())
+	wsService := services.NewWebSocketService(connectionsRepository, messagesRepository, usersRepository, wsUpgrader)
 	router.HandleFunc("/user/active/count", handlers.ActiveConnectionsCountHandler(wsService)).Methods("GET")
 	router.HandleFunc("/user/active", handlers.ActiveUsersHandler(wsService)).Methods("GET")
 	router.HandleFunc("/user/login", handlers.LogInUserHandler(usersService, tokensService)).Methods("POST")
