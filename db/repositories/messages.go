@@ -35,7 +35,6 @@ func (r *messagesRepository) SaveMessage(ctx context.Context, msg *models.Messag
 }
 
 func (r *messagesRepository) FindUserMessages(ctx context.Context, id string) ([]*models.Message, error) {
-	var messages []*models.Message
 	res, err := r.db.Find(
 		ctx,
 		bson.M{
@@ -46,25 +45,12 @@ func (r *messagesRepository) FindUserMessages(ctx context.Context, id string) ([
 		return nil, err
 	}
 
-	var results []bson.M
-	if err = res.All(ctx, &results); err != nil {
+	var messages []*models.Message
+	if err = res.All(ctx, &messages); err != nil {
 		if err == mongo.ErrNoDocuments {
 			return messages, nil
 		}
 		return nil, err
-	}
-
-	for _, row := range results {
-		var msg models.Message
-		data, err := bson.Marshal(row)
-		if err != nil {
-			return nil, err
-		}
-
-		if err = bson.Unmarshal(data, &msg); err != nil {
-			return nil, err
-		}
-		messages = append(messages, &msg)
 	}
 
 	return messages, nil

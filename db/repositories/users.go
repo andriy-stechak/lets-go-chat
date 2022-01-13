@@ -59,7 +59,6 @@ func (r *usersRepository) FindUserByName(ctx context.Context, name string) (*mod
 }
 
 func (r *usersRepository) FindUsersNotInIdList(ctx context.Context, ids []string) ([]*models.User, error) {
-	var users []*models.User
 	res, err := r.db.Find(
 		ctx,
 		bson.M{"_id": bson.M{"$nin": ids}},
@@ -68,25 +67,12 @@ func (r *usersRepository) FindUsersNotInIdList(ctx context.Context, ids []string
 		return nil, err
 	}
 
-	var results []bson.M
-	if err = res.All(ctx, &results); err != nil {
+	var users []*models.User
+	if err = res.All(ctx, &users); err != nil {
 		if err == mongo.ErrNoDocuments {
 			return users, nil
 		}
 		return nil, err
-	}
-
-	for _, row := range results {
-		var usr models.User
-		data, err := bson.Marshal(row)
-		if err != nil {
-			return nil, err
-		}
-
-		if err = bson.Unmarshal(data, &usr); err != nil {
-			return nil, err
-		}
-		users = append(users, &usr)
 	}
 
 	return users, nil
