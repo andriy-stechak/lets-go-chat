@@ -8,6 +8,7 @@ import (
 
 	"github.com/andriystech/lgc/facilities/mongo"
 	"github.com/andriystech/lgc/models"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 var ErrUserNotFound = errors.New("user not found")
@@ -16,6 +17,7 @@ var ErrUserWithNameAlreadyExists = errors.New("user with provided name already e
 type UsersRepository interface {
 	SaveUser(context.Context, *models.User) (string, error)
 	FindUserByName(context.Context, string) (*models.User, error)
+	FindUsersNotInIdList(context.Context, []string) ([]*models.User, error)
 }
 
 type usersRepository struct {
@@ -54,4 +56,38 @@ func (r *usersRepository) FindUserByName(ctx context.Context, name string) (*mod
 		return nil, err
 	}
 	return &user, nil
+}
+
+func (r *usersRepository) FindUsersNotInIdList(ctx context.Context, ids []string) ([]*models.User, error) {
+	var users []*models.User
+	res, err := r.db.Find(
+		ctx,
+		bson.M{"_id": bson.M{"$nin": ids}},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	var results []bson.M
+	if err = res.All(ctx, &results); err != nil {
+		if err == mongo.ErrNoDocuments {
+			return users, nil
+		}
+		return nil, err
+	}
+
+	for _, row := range results {
+		var usr models.User
+		data, err := bson.Marshal(row)
+		if err != nil {
+			return nil, err
+		}
+
+		if err = bson.Unmarshal(data, &usr); err != nil {
+			return nil, err
+		}
+		users = append(users, &usr)
+	}
+
+	return users, nil
 }

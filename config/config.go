@@ -11,6 +11,8 @@ type ServerConfig struct {
 	DbName                       string
 	DbConnectionTimeoutInSeconds int
 	TokenTTLInSeconds            int
+	WsReadBuffer                 int
+	WsWriteBuffer                int
 }
 
 const defaultPort = ":8090"
@@ -25,6 +27,8 @@ func GetServerConfig() *ServerConfig {
 		DbName:                       env("MONGO_DB_NAME", defaultDbName),
 		DbConnectionTimeoutInSeconds: int(time.Second * 20),
 		TokenTTLInSeconds:            int(time.Second * 60),
+		WsReadBuffer:                 1000,
+		WsWriteBuffer:                1000,
 	}
 }
 

@@ -10,6 +10,8 @@ import (
 	"github.com/andriystech/lgc/mocks"
 	"github.com/andriystech/lgc/models"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 type testSaveUsersData struct {
@@ -93,4 +95,78 @@ func TestFindUserByNameNoItems(t *testing.T) {
 
 	c.AssertExpectations(t)
 	srh.AssertExpectations(t)
+}
+
+func TestFindUsersNotInIdList(t *testing.T) {
+	errUnableToFind := errors.New("Unable to run find query")
+	errUnableToParse := errors.New("Unable to parse result")
+	ids := []string{
+		"14ef71b2-5d7c-11ec-a0f3-c46516a4fa45",
+		"14ef71b2-5d7c-11ec-a0f3-c46516a4fa46",
+	}
+	testConditions := []struct {
+		tName        string
+		ids          []string
+		expectedErr  error
+		expectedRes  []*models.User
+		prepareMocks func(*mocks.CollectionHelper, *mocks.MultiResultHelper)
+	}{
+		{
+			tName:       "should fail with unable to find error",
+			ids:         ids,
+			expectedErr: errUnableToFind,
+			expectedRes: nil,
+			prepareMocks: func(ch *mocks.CollectionHelper, mrh *mocks.MultiResultHelper) {
+				ch.On("Find", mock.Anything, bson.M{"_id": bson.M{"$nin": ids}}).Return(nil, errUnableToFind)
+			},
+		},
+		{
+			tName:       "should return empty list when no documents found",
+			ids:         ids,
+			expectedErr: nil,
+			expectedRes: []*models.User(nil),
+			prepareMocks: func(ch *mocks.CollectionHelper, mrh *mocks.MultiResultHelper) {
+				mrh.On("All", mock.Anything, mock.Anything).Return(mongo.ErrNoDocuments)
+				ch.On("Find", mock.Anything, bson.M{"_id": bson.M{"$nin": ids}}).Return(mrh, nil)
+			},
+		},
+		{
+			tName:       "should fail with unable to parse result error",
+			ids:         ids,
+			expectedErr: errUnableToParse,
+			expectedRes: nil,
+			prepareMocks: func(ch *mocks.CollectionHelper, mrh *mocks.MultiResultHelper) {
+				mrh.On("All", mock.Anything, mock.Anything).Return(errUnableToParse)
+				ch.On("Find", mock.Anything, bson.M{"_id": bson.M{"$nin": ids}}).Return(mrh, nil)
+			},
+		},
+		{
+			tName:       "should succesfully return list of users",
+			ids:         ids,
+			expectedErr: nil,
+			expectedRes: []*models.User(nil),
+			prepareMocks: func(ch *mocks.CollectionHelper, mrh *mocks.MultiResultHelper) {
+				mrh.On("All", mock.Anything, mock.Anything).Return(nil)
+				ch.On("Find", mock.Anything, bson.M{"_id": bson.M{"$nin": ids}}).Return(mrh, nil)
+			},
+		},
+	}
+	for _, testCond := range testConditions {
+		t.Run(testCond.tName, func(t *testing.T) {
+			ctx := context.Background()
+			ch := new(mocks.CollectionHelper)
+			mrh := new(mocks.MultiResultHelper)
+
+			testCond.prepareMocks(ch, mrh)
+			repo := NewUsersRepository(ch)
+
+			gotRes, gotErr := repo.FindUsersNotInIdList(ctx, testCond.ids)
+
+			assert.Equal(t, testCond.expectedErr, gotErr, "FindUsersNotInIdList returned unexpected error: got error %v want %v", gotErr, testCond.expectedErr)
+			assert.Equal(t, testCond.expectedRes, gotRes, "FindUsersNotInIdList returned unexpected result: got %v want %v", gotRes, testCond.expectedRes)
+
+			ch.AssertExpectations(t)
+			mrh.AssertExpectations(t)
+		})
+	}
 }

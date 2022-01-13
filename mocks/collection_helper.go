@@ -14,6 +14,29 @@ type CollectionHelper struct {
 	mock.Mock
 }
 
+// Find provides a mock function with given fields: _a0, _a1
+func (_m *CollectionHelper) Find(_a0 context.Context, _a1 interface{}) (mongo.MultiResultHelper, error) {
+	ret := _m.Called(_a0, _a1)
+
+	var r0 mongo.MultiResultHelper
+	if rf, ok := ret.Get(0).(func(context.Context, interface{}) mongo.MultiResultHelper); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(mongo.MultiResultHelper)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, interface{}) error); ok {
+		r1 = rf(_a0, _a1)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // FindOne provides a mock function with given fields: _a0, _a1
 func (_m *CollectionHelper) FindOne(_a0 context.Context, _a1 interface{}) mongo.SingleResultHelper {
 	ret := _m.Called(_a0, _a1)

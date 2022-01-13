@@ -6,76 +6,23 @@ import (
 	"lgc/mocks"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/andriystech/lgc/models"
-	"github.com/andriystech/lgc/services"
-	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
-type newConnectionSuccessTestData struct {
-	input    []byte
-	expected string
-}
-
-type newConnectionFailTestData struct {
+type newConnectionTestData struct {
 	url          string
 	wantCode     int
 	wantBody     string
 	prepareMocks func(*mocks.ConnectionsRepository, *mocks.TokenService, *mocks.WebSocketService)
 }
 
-func TestNewConnectionSuccess(t *testing.T) {
+func TestNewConnection(t *testing.T) {
 	fakeToken := "14ef71b2-5d7c-11ec-a0f3-c46516a4fa45"
-	cr := new(mocks.ConnectionsRepository)
-	ts := new(mocks.TokenService)
-	wsvc := services.NewWebSocketService(cr, services.NewUpdater())
-	defer cr.AssertExpectations(t)
-	defer ts.AssertExpectations(t)
-	wsHandler := WSConnectHandler(wsvc, ts)
-
-	ts.On("GetUserByToken", mock.Anything, fakeToken).Return(&models.User{UserName: "foo"}, nil)
-	cr.On("AddConnection", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-
-	testServer := httptest.NewServer(http.HandlerFunc(wsHandler))
-	defer testServer.Close()
-
-	url := fmt.Sprintf("ws%s?token=%s", strings.TrimPrefix(testServer.URL, "http"), fakeToken)
-
-	ws, _, err := websocket.DefaultDialer.Dial(url, nil)
-	assert.Nil(t, err, "%v", err)
-	defer ws.Close()
-
-	testConditions := []newConnectionSuccessTestData{
-		{
-			input:    []byte("hello"),
-			expected: "hello",
-		},
-		{
-			input:    []byte("world"),
-			expected: "world",
-		},
-	}
-
-	for _, testCond := range testConditions {
-		t.Run(fmt.Sprintf("shoul send %v then recieve %v", string(testCond.input), testCond.expected), func(t *testing.T) {
-			err := ws.WriteMessage(websocket.TextMessage, testCond.input)
-			assert.Nil(t, err, "%v", err)
-
-			_, p, err := ws.ReadMessage()
-			assert.Nil(t, err, "%v", err)
-			got := string(p)
-			assert.Equal(t, testCond.expected, got, "bad message got %s want %s", got, testCond.expected)
-		})
-	}
-}
-
-func TestNewConnectionFail(t *testing.T) {
-	fakeToken := "14ef71b2-5d7c-11ec-a0f3-c46516a4fa45"
-	testConditions := []newConnectionFailTestData{
+	testConditions := []newConnectionTestData{
 		{
 			url:          "chat/ws.rtm.start",
 			wantCode:     http.StatusBadRequest,
