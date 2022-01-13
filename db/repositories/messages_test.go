@@ -3,7 +3,6 @@ package repositories
 import (
 	"context"
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/andriystech/lgc/facilities/mongo"
@@ -18,12 +17,14 @@ func TestSaveMessage(t *testing.T) {
 	fakeMsg := &models.Message{Payload: "hello"}
 	unknownErr := errors.New("Unable to save")
 	testConditions := []struct {
+		tName        string
 		msg          *models.Message
 		wantId       string
 		wantErr      error
 		prepareMocks func(*mocks.CollectionHelper)
 	}{
 		{
+			tName:   "should successfully save message",
 			msg:     fakeMsg,
 			wantId:  "1",
 			wantErr: nil,
@@ -33,8 +34,8 @@ func TestSaveMessage(t *testing.T) {
 			},
 		},
 		{
+			tName:   "should fail with some error",
 			msg:     fakeMsg,
-			wantId:  "",
 			wantErr: unknownErr,
 			prepareMocks: func(ch *mocks.CollectionHelper) {
 				ctx := context.Background()
@@ -44,8 +45,7 @@ func TestSaveMessage(t *testing.T) {
 	}
 
 	for _, testCond := range testConditions {
-		tName := fmt.Sprintf("SaveMessage(%v, %v) == %v, %v", context.Background(), testCond.msg, testCond.wantId, testCond.wantErr)
-		t.Run(tName, func(t *testing.T) {
+		t.Run(testCond.tName, func(t *testing.T) {
 			ctx := context.Background()
 			ch := new(mocks.CollectionHelper)
 			testCond.prepareMocks(ch)
@@ -76,7 +76,6 @@ func TestFindUserMessages(t *testing.T) {
 			tName:       "should fail with unable to find error",
 			id:          id,
 			expectedErr: errUnableToFind,
-			expectedRes: nil,
 			prepareMocks: func(ch *mocks.CollectionHelper, mrh *mocks.MultiResultHelper) {
 				ch.On("Find", mock.Anything, bson.M{"recipientId": id}).Return(nil, errUnableToFind)
 			},
@@ -84,7 +83,6 @@ func TestFindUserMessages(t *testing.T) {
 		{
 			tName:       "should return empty list when no documents found",
 			id:          id,
-			expectedErr: nil,
 			expectedRes: []*models.Message(nil),
 			prepareMocks: func(ch *mocks.CollectionHelper, mrh *mocks.MultiResultHelper) {
 				mrh.On("All", mock.Anything, mock.Anything).Return(mongo.ErrNoDocuments)
@@ -95,7 +93,6 @@ func TestFindUserMessages(t *testing.T) {
 			tName:       "should fail with unable to parse result error",
 			id:          id,
 			expectedErr: errUnableToParse,
-			expectedRes: nil,
 			prepareMocks: func(ch *mocks.CollectionHelper, mrh *mocks.MultiResultHelper) {
 				mrh.On("All", mock.Anything, mock.Anything).Return(errUnableToParse)
 				ch.On("Find", mock.Anything, bson.M{"recipientId": id}).Return(mrh, nil)
@@ -104,7 +101,6 @@ func TestFindUserMessages(t *testing.T) {
 		{
 			tName:       "should succesfully return list of messages",
 			id:          id,
-			expectedErr: nil,
 			expectedRes: []*models.Message(nil),
 			prepareMocks: func(ch *mocks.CollectionHelper, mrh *mocks.MultiResultHelper) {
 				mrh.On("All", mock.Anything, mock.Anything).Return(nil)
