@@ -135,14 +135,12 @@ func (svc *webSocketService) SaveUnreadMessages(ctx context.Context, sender *mod
 
 func (svc *webSocketService) sendMessage(
 	ctx context.Context,
-	wg sync.WaitGroup,
+	wg *sync.WaitGroup,
 	ch chan error,
 	conn ws.ConnHelper,
 	msg *models.Message,
 ) {
-	defer close(ch)
 	defer wg.Done()
-	wg.Add(1)
 
 	if _, err := svc.messages.SaveMessage(ctx, msg); err != nil {
 		ch <- err
@@ -167,12 +165,15 @@ func (svc *webSocketService) SendMessageToAllConnections(
 		return err
 	}
 
+	ch := make(chan error, len(cs))
+
 	for rId, conn := range cs {
+		wg.Add(1)
 		if sender.Id == rId {
+			wg.Done()
 			continue
 		}
 
-		ch := make(chan error)
 		msg := models.NewMessage(
 			uuid.NewString(),
 			sender.Id,
@@ -180,16 +181,19 @@ func (svc *webSocketService) SendMessageToAllConnections(
 			rId,
 			payload,
 		)
-
-		go svc.sendMessage(ctx, wg, ch, conn, msg)
-
-		select {
-		case err := <-ch:
-			return err
-		}
+		go svc.sendMessage(ctx, &wg, ch, conn, msg)
 	}
 
 	wg.Wait()
+	close(ch)
+
+	var errs []error
+	for err := range ch {
+		errs = append(errs, err)
+	}
+	if len(errs) > 0 {
+		log.Printf("Warn: Unable to send message to some users. Reasons: %v", errs)
+	}
 
 	return nil
 }
