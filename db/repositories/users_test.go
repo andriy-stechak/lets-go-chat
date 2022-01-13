@@ -26,9 +26,8 @@ func TestSaveUser(t *testing.T) {
 	unknownErr := errors.New("Unable to save")
 	testConditions := []testSaveUsersData{
 		{
-			usr:     fakeUsr,
-			wantId:  "1",
-			wantErr: nil,
+			usr:    fakeUsr,
+			wantId: "1",
 			prepareMocks: func(ch *mocks.CollectionHelper, srh *mocks.SingleResultHelper) {
 				ctx := context.Background()
 				ch.On("FindOne", ctx, map[string]string{"userName": fakeUsr.UserName}).Return(srh, nil)
@@ -38,7 +37,6 @@ func TestSaveUser(t *testing.T) {
 		},
 		{
 			usr:     fakeUsr,
-			wantId:  "",
 			wantErr: ErrUserWithNameAlreadyExists,
 			prepareMocks: func(ch *mocks.CollectionHelper, srh *mocks.SingleResultHelper) {
 				ctx := context.Background()
@@ -48,7 +46,6 @@ func TestSaveUser(t *testing.T) {
 		},
 		{
 			usr:     fakeUsr,
-			wantId:  "",
 			wantErr: unknownErr,
 			prepareMocks: func(ch *mocks.CollectionHelper, srh *mocks.SingleResultHelper) {
 				ctx := context.Background()
@@ -115,7 +112,6 @@ func TestFindUsersNotInIdList(t *testing.T) {
 			tName:       "should fail with unable to find error",
 			ids:         ids,
 			expectedErr: errUnableToFind,
-			expectedRes: nil,
 			prepareMocks: func(ch *mocks.CollectionHelper, mrh *mocks.MultiResultHelper) {
 				ch.On("Find", mock.Anything, bson.M{"_id": bson.M{"$nin": ids}}).Return(nil, errUnableToFind)
 			},
@@ -123,7 +119,6 @@ func TestFindUsersNotInIdList(t *testing.T) {
 		{
 			tName:       "should return empty list when no documents found",
 			ids:         ids,
-			expectedErr: nil,
 			expectedRes: []*models.User(nil),
 			prepareMocks: func(ch *mocks.CollectionHelper, mrh *mocks.MultiResultHelper) {
 				mrh.On("All", mock.Anything, mock.Anything).Return(mongo.ErrNoDocuments)
@@ -134,7 +129,6 @@ func TestFindUsersNotInIdList(t *testing.T) {
 			tName:       "should fail with unable to parse result error",
 			ids:         ids,
 			expectedErr: errUnableToParse,
-			expectedRes: nil,
 			prepareMocks: func(ch *mocks.CollectionHelper, mrh *mocks.MultiResultHelper) {
 				mrh.On("All", mock.Anything, mock.Anything).Return(errUnableToParse)
 				ch.On("Find", mock.Anything, bson.M{"_id": bson.M{"$nin": ids}}).Return(mrh, nil)
@@ -143,7 +137,6 @@ func TestFindUsersNotInIdList(t *testing.T) {
 		{
 			tName:       "should succesfully return list of users",
 			ids:         ids,
-			expectedErr: nil,
 			expectedRes: []*models.User(nil),
 			prepareMocks: func(ch *mocks.CollectionHelper, mrh *mocks.MultiResultHelper) {
 				mrh.On("All", mock.Anything, mock.Anything).Return(nil)

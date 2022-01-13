@@ -35,12 +35,7 @@ func (r *messagesRepository) SaveMessage(ctx context.Context, msg *models.Messag
 }
 
 func (r *messagesRepository) FindUserMessages(ctx context.Context, id string) ([]*models.Message, error) {
-	res, err := r.db.Find(
-		ctx,
-		bson.M{
-			"recipientId": id,
-		},
-	)
+	res, err := r.db.Find(ctx, bson.M{"recipientId": id})
 	if err != nil {
 		return nil, err
 	}
