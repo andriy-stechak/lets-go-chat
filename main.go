@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/andriystech/lgc/api/server"
 	"github.com/andriystech/lgc/config"
 	"github.com/andriystech/lgc/facilities/mongo"
 )
@@ -22,5 +21,5 @@ func main() {
 		panic(err)
 	}
 	defer db.Disconnect(ctx)
-	server.Run(db)
+	NewServer(db).Run()
 }

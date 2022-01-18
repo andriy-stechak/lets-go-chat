@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/andriystech/lgc/config"
 	"github.com/andriystech/lgc/models"
 )
 
@@ -28,10 +29,10 @@ type tokensStorage struct {
 	mu  *sync.Mutex
 }
 
-func NewTokensRepository(ttl int) TokensRepository {
+func NewTokensRepository(config *config.ServerConfig) TokensRepository {
 	return &tokensStorage{
 		db:  map[string]*inMemoryRecord{},
-		ttl: ttl,
+		ttl: config.TokenTTLInSeconds,
 		mu:  &sync.Mutex{},
 	}
 }

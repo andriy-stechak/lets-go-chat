@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/andriystech/lgc/config"
 	"github.com/andriystech/lgc/models"
 	"github.com/stretchr/testify/assert"
 )
@@ -19,7 +20,7 @@ type testGetUserByTokenData struct {
 func TestSaveToken(t *testing.T) {
 
 	ctx := context.Background()
-	repo := NewTokensRepository(10)
+	repo := NewTokensRepository(&config.ServerConfig{TokenTTLInSeconds: 10})
 
 	gotErr := repo.SaveToken(ctx, "token", &models.User{})
 
@@ -35,7 +36,7 @@ func TestGetUserByToken(t *testing.T) {
 			wantErr: nil,
 			wantUsr: fakeUsr,
 			composeRepo: func() TokensRepository {
-				tr := NewTokensRepository(10)
+				tr := NewTokensRepository(&config.ServerConfig{TokenTTLInSeconds: 10})
 				tr.SaveToken(context.Background(), fakeToken, fakeUsr)
 				return tr
 			},
@@ -45,7 +46,7 @@ func TestGetUserByToken(t *testing.T) {
 			wantErr: ErrTokenNotFound,
 			wantUsr: nil,
 			composeRepo: func() TokensRepository {
-				return NewTokensRepository(10)
+				return NewTokensRepository(&config.ServerConfig{TokenTTLInSeconds: 10})
 			},
 		},
 		{
@@ -53,7 +54,7 @@ func TestGetUserByToken(t *testing.T) {
 			wantErr: ErrTokenExpired,
 			wantUsr: nil,
 			composeRepo: func() TokensRepository {
-				tr := NewTokensRepository(-1)
+				tr := NewTokensRepository(&config.ServerConfig{TokenTTLInSeconds: -1})
 				tr.SaveToken(context.Background(), fakeToken, fakeUsr)
 				return tr
 			},

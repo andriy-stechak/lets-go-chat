@@ -21,10 +21,10 @@ type UsersRepository interface {
 }
 
 type usersRepository struct {
-	db mongo.CollectionHelper
+	db mongo.UsersCollection
 }
 
-func NewUsersRepository(db mongo.CollectionHelper) UsersRepository {
+func NewUsersRepository(db mongo.UsersCollection) UsersRepository {
 	return &usersRepository{
 		db: db,
 	}
