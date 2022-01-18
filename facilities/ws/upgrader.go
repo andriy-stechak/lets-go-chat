@@ -3,6 +3,7 @@ package ws
 import (
 	"net/http"
 
+	"github.com/andriystech/lgc/config"
 	"github.com/gorilla/websocket"
 )
 
@@ -22,11 +23,11 @@ func (wu *websocketUpgrader) Upgrade(w http.ResponseWriter, r *http.Request) (Co
 	return NewConn(conn), nil
 }
 
-func NewUpgrader(rb, wb int) UpgraderHelper {
+func NewUpgrader(cg *config.ServerConfig) UpgraderHelper {
 	return &websocketUpgrader{
 		updater: &websocket.Upgrader{
-			ReadBufferSize:  rb,
-			WriteBufferSize: wb,
+			ReadBufferSize:  cg.WsReadBuffer,
+			WriteBufferSize: cg.WsWriteBuffer,
 			// Disable cross domain check
 			CheckOrigin: func(r *http.Request) bool {
 				return true

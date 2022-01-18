@@ -16,10 +16,10 @@ type MessagesRepository interface {
 }
 
 type messagesRepository struct {
-	db mongo.CollectionHelper
+	db mongo.MessagesCollection
 }
 
-func NewMessagesRepository(db mongo.CollectionHelper) MessagesRepository {
+func NewMessagesRepository(db mongo.MessagesCollection) MessagesRepository {
 	return &messagesRepository{
 		db: db,
 	}

@@ -8,6 +8,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+type MessagesCollection CollectionHelper
+type UsersCollection CollectionHelper
+
 var ErrNoDocuments = mongo.ErrNoDocuments
 
 type DatabaseHelper interface {
@@ -107,4 +110,18 @@ func (sr *mongoSingleResult) Decode(v interface{}) error {
 
 func (mr *mongoMultiResult) All(ctx context.Context, v interface{}) error {
 	return mr.mc.All(ctx, v)
+}
+
+func NewMessagesCollection(
+	client ClientHelper,
+	config *config.ServerConfig,
+) MessagesCollection {
+	return client.Database(config.DbName).Collection("messages")
+}
+
+func NewUsersCollection(
+	client ClientHelper,
+	config *config.ServerConfig,
+) UsersCollection {
+	return client.Database(config.DbName).Collection("users")
 }

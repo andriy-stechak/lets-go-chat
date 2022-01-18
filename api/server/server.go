@@ -8,36 +8,47 @@ import (
 	"github.com/andriystech/lgc/api/handlers"
 	"github.com/andriystech/lgc/api/middlewares"
 	"github.com/andriystech/lgc/config"
-	"github.com/andriystech/lgc/db/repositories"
-	"github.com/andriystech/lgc/facilities/mongo"
-	"github.com/andriystech/lgc/facilities/ws"
 	"github.com/andriystech/lgc/services"
 	"github.com/gorilla/mux"
 )
 
-func Run(db mongo.ClientHelper) {
-	serverConfig := config.GetServerConfig()
-	wsUpgrader := ws.NewUpgrader(serverConfig.WsReadBuffer, serverConfig.WsWriteBuffer)
+type HttpServer interface {
+	Run()
+}
+
+type HttpServerContainer struct {
+	ts services.TokenService
+	us services.UserService
+	ws services.WebSocketService
+	cg *config.ServerConfig
+}
+
+func NewHttpServer(
+	ts services.TokenService,
+	us services.UserService,
+	ws services.WebSocketService,
+	cg *config.ServerConfig,
+) HttpServer {
+	return &HttpServerContainer{
+		ts,
+		us,
+		ws,
+		cg,
+	}
+}
+
+func (hsc *HttpServerContainer) Run() {
 	router := mux.NewRouter()
 	router.Use(middlewares.LogHttpCalls(os.Stdout))
 	router.Use(middlewares.PanicAndRecover)
-	usersCollection := db.Database(serverConfig.DbName).Collection("users")
-	usersRepository := repositories.NewUsersRepository(usersCollection)
-	messagesCollection := db.Database(serverConfig.DbName).Collection("messages")
-	messagesRepository := repositories.NewMessagesRepository(messagesCollection)
-	tokensRepository := repositories.NewTokensRepository(serverConfig.TokenTTLInSeconds)
-	connectionsRepository := repositories.NewConnectionsRepository()
-	usersService := services.NewUserService(usersRepository)
-	tokensService := services.NewTokenService(tokensRepository)
-	wsService := services.NewWebSocketService(connectionsRepository, messagesRepository, usersRepository, wsUpgrader)
-	router.HandleFunc("/user/active/count", handlers.ActiveConnectionsCountHandler(wsService)).Methods("GET")
-	router.HandleFunc("/user/active", handlers.ActiveUsersHandler(wsService)).Methods("GET")
-	router.HandleFunc("/user/login", handlers.LogInUserHandler(usersService, tokensService)).Methods("POST")
-	router.HandleFunc("/user", handlers.RegisterUserHandler(usersService)).Methods("POST")
+	router.HandleFunc("/user/active/count", handlers.ActiveConnectionsCountHandler(hsc.ws)).Methods("GET")
+	router.HandleFunc("/user/active", handlers.ActiveUsersHandler(hsc.ws)).Methods("GET")
+	router.HandleFunc("/user/login", handlers.LogInUserHandler(hsc.us, hsc.ts)).Methods("POST")
+	router.HandleFunc("/user", handlers.RegisterUserHandler(hsc.us)).Methods("POST")
 	router.HandleFunc("/_health", handlers.HealthCheck).Methods("GET")
-	http.HandleFunc("/chat/ws.rtm.start", handlers.WSConnectHandler(wsService, tokensService))
+	http.HandleFunc("/chat/ws.rtm.start", handlers.WSConnectHandler(hsc.ws, hsc.ts))
 	http.Handle("/", router)
 
-	log.Printf("Server is listening %s port", serverConfig.Port)
-	log.Fatal(http.ListenAndServe(serverConfig.Port, nil))
+	log.Printf("Server is listening %s port", hsc.cg.Port)
+	log.Fatal(http.ListenAndServe(hsc.cg.Port, nil))
 }
