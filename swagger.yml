@@ -1,0 +1,215 @@
+---
+swagger: '2.0'
+info:
+  description: Just a simple chat service
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  title: Fancy Golang chat
+  version: 1.0.0
+basePath: "/"
+paths:
+  "/chat/ws.rtm.start":
+    get:
+      parameters:
+      - description: One time token for a loged user
+        in: query
+        name: token
+        required: true
+        type: string
+      responses:
+        '101':
+          description: Upgrade to websocket protocol
+        '400':
+          description: Invalid token
+          schema:
+            "$ref": "#/definitions/ErrorResponse"
+        '500':
+          description: Internal Server Error
+          schema:
+            "$ref": "#/definitions/ErrorResponse"
+      tags:
+      - chat
+      operationId: wsRTMStart
+      summary: Endpoint to start real time chat
+  "/user":
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      parameters:
+      - description: Created user object
+        in: body
+        name: body
+        required: true
+        schema:
+          "$ref": "#/definitions/CreateUserRequest"
+      responses:
+        '200':
+          description: user created
+          schema:
+            "$ref": "#/definitions/CreateUserResponse"
+        '400':
+          description: Bad request, empty username or id
+          schema:
+            "$ref": "#/definitions/ErrorResponse"
+        '409':
+          description: Conflict, user with such name already exist
+          schema:
+            "$ref": "#/definitions/ErrorResponse"
+        '500':
+          description: Internal Server Error
+          schema:
+            "$ref": "#/definitions/ErrorResponse"
+      tags:
+      - user
+      operationId: createUser
+      summary: Register (create) user
+      x-codegen-request-body-name: body
+  "/user/active/count":
+    get:
+      produces:
+      - application/json
+      parameters: []
+      responses:
+        '200':
+          description: successful operation, returns number of active users
+          schema:
+            "$ref": "#/definitions/ActiveUsersCountResponse"
+        '500':
+          description: Internal Server Error
+          schema:
+            "$ref": "#/definitions/ErrorResponse"
+      tags:
+      - chat
+      operationId: getActiveUsersCount
+      summary: Number of active users in a chat
+  "/user/active":
+    get:
+      produces:
+      - application/json
+      parameters: []
+      responses:
+        '200':
+          description: successful operation, returns list of active users
+          schema:
+            "$ref": "#/definitions/ActiveUsersResponse"
+        '500':
+          description: Internal Server Error
+          schema:
+            "$ref": "#/definitions/ErrorResponse"
+      tags:
+      - chat
+      operationId: getActiveUsers
+      summary: List of active users in a chat
+  "/user/login":
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      parameters:
+      - description: User credendials
+        in: body
+        name: body
+        required: true
+        schema:
+          "$ref": "#/definitions/LoginUserRequest"
+      responses:
+        '200':
+          description: successful operation, returns link to join chat
+          headers:
+            X-Expires-After:
+              description: date in UTC when token expires
+              format: date-time
+              type: string
+            X-Rate-Limit:
+              description: calls per hour allowed by the user
+              format: int32
+              type: integer
+          schema:
+            "$ref": "#/definitions/LoginUserResonse"
+        '400':
+          description: Invalid username/password
+          schema:
+            "$ref": "#/definitions/ErrorResponse"
+        '500':
+          description: Internal Server Error
+          schema:
+            "$ref": "#/definitions/ErrorResponse"
+      tags:
+      - user
+      operationId: loginUser
+      summary: Logs user into the system
+definitions:
+  ErrorResponse:
+    properties:
+      status:
+        type: number
+      message:
+        type: string
+    type: object
+  ActiveUsersResponse:
+    properties:
+      users:
+        type: array
+        items:
+          type: string
+    required:
+    - users
+    type: object
+  ActiveUsersCountResponse:
+    properties:
+      count:
+        type: integer
+    required:
+    - count
+    type: object
+  CreateUserRequest:
+    properties:
+      password:
+        minLength: 8
+        type: string
+      userName:
+        minLength: 4
+        type: string
+    required:
+    - password
+    - userName
+    type: object
+  CreateUserResponse:
+    properties:
+      id:
+        format: uuid
+        type: string
+      userName:
+        type: string
+    type: object
+  LoginUserRequest:
+    properties:
+      password:
+        description: The password for login in clear text
+        type: string
+      userName:
+        description: The user name for login
+        type: string
+    required:
+    - password
+    - userName
+    type: object
+  LoginUserResonse:
+    properties:
+      url:
+        description: A url for websoket API with a one-time token for starting chat
+        example: ws://fancy-chat.io/ws&token=one-time-token
+        type: string
+    required:
+    - url
+    type: object
+tags:
+- description: Operations about user
+  name: user
+- description: Operations related to chat
+  name: chat
+x-components: {}

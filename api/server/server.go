@@ -36,7 +36,7 @@ func (hsc *HttpServerContainer) Run() {
 	router.HandleFunc("/user/login", handlers.LogInUserHandler(hsc.userService, hsc.tokenService)).Methods("POST")
 	router.HandleFunc("/user", handlers.RegisterUserHandler(hsc.userService)).Methods("POST")
 	router.HandleFunc("/_health", handlers.HealthCheck).Methods("GET")
-	http.HandleFunc("/chat/ws.rtm.start", handlers.WSConnectHandler(hsc.webSocketService, hsc.tokenService))
+	router.HandleFunc("/chat/ws.rtm.start", handlers.WSConnectHandler(hsc.webSocketService, hsc.tokenService))
 	http.Handle("/", router)
 
 	log.Printf("Server is listening %s port", hsc.config.Port)

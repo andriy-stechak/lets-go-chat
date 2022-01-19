@@ -21,3 +21,11 @@
 vendor/
 
 data
+
+api/restapi/*
+api/cmd
+api/models
+!api/restapi/configure_lets_go_chat.go
+!api/restapi/wire.go
+!api/restapi/wire_gen.go
+!api/restapi/handlers/
