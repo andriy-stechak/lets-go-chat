@@ -17,38 +17,28 @@ type HttpServer interface {
 }
 
 type HttpServerContainer struct {
-	ts services.TokenService
-	us services.UserService
-	ws services.WebSocketService
-	cg *config.ServerConfig
+	tokenService     services.TokenService
+	userService      services.UserService
+	webSocketService services.WebSocketService
+	config           *config.ServerConfig
 }
 
-func NewHttpServer(
-	ts services.TokenService,
-	us services.UserService,
-	ws services.WebSocketService,
-	cg *config.ServerConfig,
-) HttpServer {
-	return &HttpServerContainer{
-		ts,
-		us,
-		ws,
-		cg,
-	}
+func NewHttpServer(ts services.TokenService, us services.UserService, ws services.WebSocketService, cg *config.ServerConfig) HttpServer {
+	return &HttpServerContainer{tokenService: ts, userService: us, webSocketService: ws, config: cg}
 }
 
 func (hsc *HttpServerContainer) Run() {
 	router := mux.NewRouter()
 	router.Use(middlewares.LogHttpCalls(os.Stdout))
 	router.Use(middlewares.PanicAndRecover)
-	router.HandleFunc("/user/active/count", handlers.ActiveConnectionsCountHandler(hsc.ws)).Methods("GET")
-	router.HandleFunc("/user/active", handlers.ActiveUsersHandler(hsc.ws)).Methods("GET")
-	router.HandleFunc("/user/login", handlers.LogInUserHandler(hsc.us, hsc.ts)).Methods("POST")
-	router.HandleFunc("/user", handlers.RegisterUserHandler(hsc.us)).Methods("POST")
+	router.HandleFunc("/user/active/count", handlers.ActiveConnectionsCountHandler(hsc.webSocketService)).Methods("GET")
+	router.HandleFunc("/user/active", handlers.ActiveUsersHandler(hsc.webSocketService)).Methods("GET")
+	router.HandleFunc("/user/login", handlers.LogInUserHandler(hsc.userService, hsc.tokenService)).Methods("POST")
+	router.HandleFunc("/user", handlers.RegisterUserHandler(hsc.userService)).Methods("POST")
 	router.HandleFunc("/_health", handlers.HealthCheck).Methods("GET")
-	http.HandleFunc("/chat/ws.rtm.start", handlers.WSConnectHandler(hsc.ws, hsc.ts))
+	http.HandleFunc("/chat/ws.rtm.start", handlers.WSConnectHandler(hsc.webSocketService, hsc.tokenService))
 	http.Handle("/", router)
 
-	log.Printf("Server is listening %s port", hsc.cg.Port)
-	log.Fatal(http.ListenAndServe(hsc.cg.Port, nil))
+	log.Printf("Server is listening %s port", hsc.config.Port)
+	log.Fatal(http.ListenAndServe(hsc.config.Port, nil))
 }
