@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"net/http"
-	"sync"
 
 	"github.com/andriystech/lgc/db/repositories"
 	"github.com/andriystech/lgc/facilities/ws"
@@ -135,22 +134,18 @@ func (svc *webSocketService) SaveUnreadMessages(ctx context.Context, sender *mod
 
 func (svc *webSocketService) sendMessage(
 	ctx context.Context,
-	wg *sync.WaitGroup,
-	ch chan error,
 	conn ws.ConnHelper,
 	msg *models.Message,
-) {
-	defer wg.Done()
-
+) error {
 	if _, err := svc.messages.SaveMessage(ctx, msg); err != nil {
-		ch <- err
-		return
+		return err
 	}
 
 	if err := conn.WriteMessage(websocket.TextMessage, []byte(msg.Payload)); err != nil {
-		ch <- err
-		return
+		return err
 	}
+
+	return nil
 }
 
 func (svc *webSocketService) SendMessageToAllConnections(
@@ -158,19 +153,13 @@ func (svc *webSocketService) SendMessageToAllConnections(
 	payload string,
 	sender *models.User,
 ) error {
-	var wg sync.WaitGroup
-
 	cs, err := svc.connections.GetAllConnections(ctx)
 	if err != nil {
 		return err
 	}
 
-	ch := make(chan error, len(cs))
-
 	for rId, conn := range cs {
-		wg.Add(1)
 		if sender.Id == rId {
-			wg.Done()
 			continue
 		}
 
@@ -181,18 +170,7 @@ func (svc *webSocketService) SendMessageToAllConnections(
 			rId,
 			payload,
 		)
-		go svc.sendMessage(ctx, &wg, ch, conn, msg)
-	}
-
-	wg.Wait()
-	close(ch)
-
-	var errs []error
-	for err := range ch {
-		errs = append(errs, err)
-	}
-	if len(errs) > 0 {
-		log.Printf("Warn: Unable to send message to some users. Reasons: %v", errs)
+		svc.sendMessage(ctx, conn, msg)
 	}
 
 	return nil

@@ -1,6 +1,10 @@
 package ws
 
-import "github.com/gorilla/websocket"
+import (
+	"sync"
+
+	"github.com/gorilla/websocket"
+)
 
 type ConnHelper interface {
 	Close()
@@ -9,12 +13,14 @@ type ConnHelper interface {
 }
 
 type websocketConnection struct {
-	c *websocket.Conn
+	c  *websocket.Conn
+	mu *sync.Mutex
 }
 
 func NewConn(c *websocket.Conn) ConnHelper {
 	return &websocketConnection{
-		c: c,
+		c:  c,
+		mu: &sync.Mutex{},
 	}
 }
 
@@ -23,9 +29,13 @@ func (wc *websocketConnection) Close() {
 }
 
 func (wc *websocketConnection) ReadMessage() (int, []byte, error) {
+	wc.mu.Lock()
+	defer wc.mu.Unlock()
 	return wc.c.ReadMessage()
 }
 
 func (wc *websocketConnection) WriteMessage(mt int, msg []byte) error {
+	wc.mu.Lock()
+	defer wc.mu.Unlock()
 	return wc.c.WriteMessage(mt, msg)
 }
